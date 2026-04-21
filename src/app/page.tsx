@@ -1,56 +1,11 @@
 import Link from "next/link";
 import { getAnimals } from "@/app/actions/herd";
 import { Users, Droplets, Calendar, TrendingUp, Plus, Activity, LogOut, Trash2, Database, Milk, Wallet, Stethoscope, Info, Check } from "lucide-react";
+import { getAnimalGroup } from "@/lib/herd-utils";
 
 export default async function DashboardPage() {
   const animals = await getAnimals();
 
-  // Helper function to get group (same as in HerdClient)
-  const getAnimalGroup = (animal: any) => {
-    const today = new Date();
-    const birthDate = animal.birthDate ? new Date(animal.birthDate) : null;
-    const ageInDays = birthDate ? Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24)) : 1000;
-    
-    // Male animals
-    if (animal.gender === 'MALE') {
-      if (ageInDays < 180) return 'BUZOVLAR';
-      if (ageInDays < 450) return 'DANALAR';
-      return 'DANALAR/BUĞALAR';
-    }
-
-    // Female animals logic
-    const lastCalving = animal.calvingRecords && animal.calvingRecords[0];
-    const lastAI = animal.reproRecords && animal.reproRecords.find((r: any) => r.eventType === 'INSEMINATION');
-    
-    // Babies (Calves)
-    if (ageInDays < 180) return 'BUZOVLAR'; 
-    
-    // Pregnancy & Calving Logic
-    if (lastAI) {
-      const aiDate = new Date(lastAI.date);
-      const isPregnant = !lastCalving || new Date(lastCalving.date) < aiDate;
-      
-      if (isPregnant) {
-        const expectedCalving = new Date(aiDate.getTime() + (285 * 24 * 60 * 60 * 1000));
-        const daysToCalving = Math.floor((expectedCalving.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (daysToCalving <= 30 && daysToCalving > 0) return 'DOĞUMA 1 AY QALMIŞLAR';
-        if (daysToCalving <= 60 && daysToCalving > 30) return 'QURUYA ÇIXANLAR';
-      }
-    }
-
-    // Milking status for adult females
-    if (lastCalving) {
-      const daysSinceCalving = Math.floor((today.getTime() - new Date(lastCalving.date).getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceCalving <= 30) return 'YENİ DOĞANLAR'; // Fresh cows
-      if (daysSinceCalving <= 150) return 'SAĞMAL 1';
-      return 'SAĞMAL 2';
-    }
-
-    // Young females
-    if (ageInDays < 450) return 'DANALAR';
-    return 'DÜYƏLƏR'; // Females > 15 months that haven't calved yet
-  };
 
   // Group Counts
   const counts = animals.reduce((acc: any, a) => {
