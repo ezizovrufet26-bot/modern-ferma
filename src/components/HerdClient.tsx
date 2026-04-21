@@ -5,6 +5,7 @@ import { Search, Plus, Trash2, Edit, Activity, Bell, Calendar, Image as ImageIco
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getAnimalGroup, calculateAge, type Animal } from '@/lib/herd-utils';
+import PedigreeTree from './PedigreeTree';
 
 
 export default function HerdClient({ 
@@ -48,7 +49,7 @@ export default function HerdClient({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGroup, setFilterGroup] = useState<string | null>(urlGroup);
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(animals.length > 0 ? animals[0].id : null);
-  const [activeTab, setActiveTab] = useState<'repro' | 'health'>('repro');
+  const [activeTab, setActiveTab] = useState<'repro' | 'health' | 'pedigree'>('repro');
   const [showForm, setShowForm] = useState<'none' | 'ai' | 'health' | 'vaccine' | 'mass_vaccine' | 'calving'>('none');
   const [editingRecord, setEditingRecord] = useState<any>(null);
   
@@ -428,6 +429,12 @@ export default function HerdClient({
                            >
                              Sağlamlıq
                            </button>
+                           <button 
+                             onClick={() => setActiveTab('pedigree')}
+                             className={`px-6 py-2.5 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'pedigree' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                           >
+                             Şəcərə
+                           </button>
                         </div>
 
                         {/* DATA LISTS */}
@@ -496,6 +503,63 @@ export default function HerdClient({
                                  )
                                })}
                              </>
+                           )}
+
+                           {activeTab === 'health' && (
+                             <div className="space-y-8">
+                               {selectedAnimal.healthRecords?.map((record: any) => (
+                                 <div key={record.id} className="relative flex gap-8 items-start group">
+                                   <div className="absolute left-[-15px] top-2 w-4 h-4 rounded-full bg-red-500 ring-8 ring-white z-10 group-hover:scale-125 transition-all shadow-lg" />
+                                   <div className="flex-1 bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1">
+                                     <div className="flex justify-between items-center mb-4">
+                                       <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600">
+                                             <Activity className="w-5 h-5"/>
+                                          </div>
+                                          <div>
+                                             <p className="font-black text-gray-900 text-base">{record.disease || 'Müalicə'}</p>
+                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(record.date).toLocaleDateString('az-AZ')}</p>
+                                          </div>
+                                       </div>
+                                       <div className="flex gap-2">
+                                          <button onClick={() => { setEditingRecord(record); setShowForm('health'); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
+                                          <button onClick={async () => { if(confirm('Silsin?')) await deleteHealthAction?.(record.id); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                       </div>
+                                     </div>
+                                     <p className="text-xs font-bold text-gray-500 mt-2">Dərmanlar: <span className="text-gray-900 font-black">{record.medications || '-'}</span></p>
+                                   </div>
+                                 </div>
+                               ))}
+                               {selectedAnimal.vaccineRecords?.map((record: any) => (
+                                 <div key={record.id} className="relative flex gap-8 items-start group">
+                                   <div className="absolute left-[-15px] top-2 w-4 h-4 rounded-full bg-blue-400 ring-8 ring-white z-10 group-hover:scale-125 transition-all shadow-lg" />
+                                   <div className="flex-1 bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1">
+                                      <div className="flex justify-between items-center mb-4">
+                                         <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                                               <Syringe className="w-5 h-5"/>
+                                            </div>
+                                            <div>
+                                               <p className="font-black text-gray-900 text-base">{record.vaccineName}</p>
+                                               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(record.date).toLocaleDateString('az-AZ')}</p>
+                                            </div>
+                                         </div>
+                                         <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full uppercase tracking-widest">Vaksin</span>
+                                      </div>
+                                   </div>
+                                 </div>
+                               ))}
+                             </div>
+                           )}
+
+                           {activeTab === 'pedigree' && (
+                             <div className="pt-4">
+                               <PedigreeTree 
+                                 selectedAnimal={selectedAnimal} 
+                                 allAnimals={animals} 
+                                 onSelectAnimal={(id) => setSelectedAnimalId(id)}
+                               />
+                             </div>
                            )}
                         </div>
                      </div>
