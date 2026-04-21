@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Animal {
+  id             String               @id @default(uuid())
+  tagNumber      String               @unique
+  name           String?
+  breed          String?
+  gender         String               @default("FEMALE")
+  birthDate      DateTime?
+  stage          String               @default("CALF")
+  groupName      String               @default("BUZOV_QRUPU")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  motherId       String?
+  sireCode       String?
+  mother         Animal?              @relation("MotherToChild", fields: [motherId], references: [id])
+  children       Animal[]             @relation("MotherToChild")
+
+  milkRecords    MilkRecord[]
+  healthRecords  HealthRecord[]
+  reproRecords   ReproductionRecord[]
+  calvingRecords CalvingRecord[]
+  vaccineRecords VaccineRecord[]
+}
+
+model MilkRecord {
+  id           String   @id @default(uuid())
+  animalId     String
+  date         DateTime
+  yieldMorning Float    @default(0)
+  yieldEvening Float    @default(0)
+  totalYield   Float
+  createdAt    DateTime @default(now())
+
+  animal       Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
+
+model HealthRecord {
+  id          String   @id @default(uuid())
+  animalId    String
+  date        DateTime
+  type        String
+  disease     String?
+  description String
+  treatment   String?
+  medications String?
+  vetName     String?
+  cost        Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  animal      Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
+
+model VaccineRecord {
+  id          String   @id @default(uuid())
+  animalId    String
+  vaccineName String
+  date        DateTime
+  nextDueDate DateTime?
+  dose        String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  animal      Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
+
+model Staff {
+  id          String   @id @default(uuid())
+  name        String
+  role        String   @default("HEKIM") // HEKIM, BAS_HEKIM, TEXNIK
+  phone       String?
+  createdAt   DateTime @default(now())
+  
+  reproRecords ReproductionRecord[]
+}
+
+model CalvingRecord {
+  id          String   @id @default(uuid())
+  animalId    String
+  date        DateTime
+  parity      Int      @default(1)
+  calfGender  String   @default("FEMALE")
+  calfId      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  animal      Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
+
+model ReproductionRecord {
+  id                  String    @id @default(uuid())
+  animalId            String
+  vetId               String?
+  date                DateTime
+  eventType           String
+  expectedCalvingDate DateTime? 
+  notes               String?
+  createdAt           DateTime  @default(now())
+
+  animal              Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  vet                 Staff?    @relation(fields: [vetId], references: [id])
+}
+
+model FinanceRecord {
+  id          String   @id @default(uuid())
+  date        DateTime
+  type        String
+  category    String
+  amount      Float
+  description String?
+  createdAt   DateTime @default(now())
+}
