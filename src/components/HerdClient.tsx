@@ -37,6 +37,8 @@ export default function HerdClient({
   updateVaccineAction,
   deleteVaccineAction,
   addMassVaccineAction,
+  updateGroupAction,
+  initialGroup,
   staffList = [] 
 }: { 
   animals: Animal[], 
@@ -52,6 +54,8 @@ export default function HerdClient({
   updateVaccineAction?: (id: string, formData: FormData) => Promise<void>,
   deleteVaccineAction?: (id: string) => Promise<void>,
   addMassVaccineAction?: (formData: FormData) => Promise<void>,
+  updateGroupAction?: (id: string, group: string) => Promise<void>,
+  initialGroup?: string | null,
   staffList?: any[] 
 }) {
   const searchParams = useSearchParams();
