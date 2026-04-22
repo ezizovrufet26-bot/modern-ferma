@@ -13,7 +13,13 @@ export type Animal = {
   calvingRecords?: any[];
   healthRecords?: any[];
   vaccineRecords?: any[];
+  weightRecords?: any[];
   children?: any[];
+  isPregnant?: boolean;
+  expectedCalvingDate?: Date | null;
+  lastBreedingDate?: Date | null;
+  isDry?: boolean;
+  dryDate?: Date | null;
 };
 
 export const getAnimalGroup = (animal: any) => {

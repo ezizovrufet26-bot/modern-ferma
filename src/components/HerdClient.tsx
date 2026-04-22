@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, Trash2, Edit, Activity, Bell, Calendar, Image as ImageIcon, Milk, Info, Check, X, Filter, Syringe, Users, ShieldCheck, Database } from 'lucide-react';
+import { Search, Plus, Trash2, Edit, Activity, Bell, Calendar, Image as ImageIcon, Milk, Info, Check, X, Filter, Syringe, Users, ShieldCheck, Database, Upload, FileDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import * as XLSX from 'xlsx';
 import { getAnimalGroup, calculateAge, type Animal } from '@/lib/herd-utils';
 import PedigreeTree from './PedigreeTree';
+import { addWeightRecord, deleteWeightRecord } from '@/app/actions/weight';
+import { importAnimalsFromData } from '@/app/actions/herd';
 
 
 export default function HerdClient({ 
@@ -15,6 +18,8 @@ export default function HerdClient({
   updateAIAction,
   deleteAIAction,
   saveCalvingAction,
+  savePDAction,
+  saveDryAction,
   addHealthAction,
   updateHealthAction,
   deleteHealthAction,
@@ -24,24 +29,28 @@ export default function HerdClient({
   addMassVaccineAction,
   updateGroupAction,
   initialGroup,
-  staffList = [] 
+  staffList = [],
+  targetUserId 
 }: { 
   animals: Animal[], 
-  deleteAction: (id: string) => Promise<void>, 
-  saveAIAction?: (formData: FormData) => Promise<void>, 
-  updateAIAction?: (id: string, formData: FormData) => Promise<void>,
-  deleteAIAction?: (id: string) => Promise<void>,
-  saveCalvingAction?: (formData: FormData) => Promise<void>,
-  addHealthAction?: (formData: FormData) => Promise<void>,
-  updateHealthAction?: (id: string, formData: FormData) => Promise<void>,
-  deleteHealthAction?: (id: string) => Promise<void>,
-  addVaccineAction?: (formData: FormData) => Promise<void>,
-  updateVaccineAction?: (id: string, formData: FormData) => Promise<void>,
-  deleteVaccineAction?: (id: string) => Promise<void>,
-  addMassVaccineAction?: (formData: FormData) => Promise<void>,
-  updateGroupAction?: (id: string, group: string) => Promise<void>,
+  deleteAction: (id: string, targetUserId?: string) => Promise<void>, 
+  saveAIAction?: (formData: FormData, targetUserId?: string) => Promise<void>, 
+  updateAIAction?: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
+  deleteAIAction?: (id: string, targetUserId?: string) => Promise<void>,
+  saveCalvingAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
+  addHealthAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
+  updateHealthAction?: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
+  deleteHealthAction?: (id: string, targetUserId?: string) => Promise<void>,
+  addVaccineAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
+  updateVaccineAction?: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
+  deleteVaccineAction?: (id: string, targetUserId?: string) => Promise<void>,
+  addMassVaccineAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
+  updateGroupAction?: (id: string, groupName: string, targetUserId?: string) => Promise<void>,
   initialGroup?: string | null,
-  staffList?: any[] 
+  staffList?: any[],
+  targetUserId?: string,
+  savePDAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
+  saveDryAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
 }) {
   const searchParams = useSearchParams();
   const urlGroup = searchParams.get('group');
@@ -49,8 +58,9 @@ export default function HerdClient({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGroup, setFilterGroup] = useState<string | null>(urlGroup);
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(animals.length > 0 ? animals[0].id : null);
-  const [activeTab, setActiveTab] = useState<'repro' | 'health' | 'pedigree'>('repro');
-  const [showForm, setShowForm] = useState<'none' | 'ai' | 'health' | 'vaccine' | 'mass_vaccine' | 'calving'>('none');
+  const [isImporting, setIsImporting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'repro' | 'health' | 'pedigree' | 'weight'>('repro');
+  const [showForm, setShowForm] = useState<'none' | 'ai' | 'health' | 'vaccine' | 'mass_vaccine' | 'calving' | 'pd' | 'dry'>('none');
   const [editingRecord, setEditingRecord] = useState<any>(null);
   
   const [massVaccineGroup, setMassVaccineGroup] = useState<string>('SAĞMAL 1');
@@ -61,6 +71,45 @@ export default function HerdClient({
   useEffect(() => {
     if (urlGroup) setFilterGroup(urlGroup);
   }, [urlGroup]);
+
+  const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+
+          if (data.length > 0) {
+            const res = await importAnimalsFromData(data, targetUserId || undefined);
+            if (res.success) {
+              alert(`${res.importedCount} heyvan uğurla əlavə edildi/yeniləndi.`);
+              window.location.reload(); 
+            }
+          } else {
+            alert("Excel faylında məlumat tapılmadı.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Fayl emal edilərkən xəta baş verdi.");
+        } finally {
+           setIsImporting(false);
+        }
+      };
+      reader.readAsBinaryString(file);
+    } catch (err) {
+      console.error(err);
+      alert("Excel faylı oxunarkən xəta baş verdi.");
+      setIsImporting(false);
+    }
+  };
 
 
   const filteredAnimals = animals.filter(a => {
@@ -144,9 +193,22 @@ export default function HerdClient({
         <div className="p-6 border-b border-gray-100/50 bg-white/30 backdrop-blur-md">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-black text-gray-900 text-2xl tracking-tight">Sürü <span className="text-blue-600">Siyahısı</span></h2>
-            <Link href="/herd/new" className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl transition-all shadow-lg shadow-blue-600/20 transform hover:scale-110 active:scale-95">
-              <Plus className="w-5 h-5" />
-            </Link>
+            <div className="flex items-center gap-2">
+               <label className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl cursor-pointer hover:bg-emerald-100 transition-all border border-emerald-100">
+                 {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                 <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleExcelImport} disabled={isImporting} />
+               </label>
+               <button 
+                 onClick={() => { setMassVaccineGroup('SAĞMAL 1'); setShowForm('mass_vaccine'); }}
+                 className="bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-2xl transition-all shadow-lg shadow-purple-600/20 transform hover:scale-105 active:scale-95"
+                 title="Kütləvi Vaksinasiya"
+               >
+                 <Syringe className="w-5 h-5" />
+               </button>
+               <Link href={targetUserId ? `/herd/new?userId=${targetUserId}` : "/herd/new"} className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl transition-all shadow-lg shadow-blue-600/20 transform hover:scale-105 active:scale-95">
+                 <Plus className="w-5 h-5" />
+               </Link>
+            </div>
           </div>
           <div className="relative group">
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -271,12 +333,12 @@ export default function HerdClient({
                  </div>
                  
                  <div className="flex gap-3 mb-1">
-                    <Link href={`/herd/edit/${selectedAnimal.id}`} className="w-14 h-14 bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-blue-600 rounded-2xl border border-white/20 transition-all flex items-center justify-center group shadow-2xl">
+                    <Link href={targetUserId ? `/herd/edit/${selectedAnimal.id}?userId=${targetUserId}` : `/herd/edit/${selectedAnimal.id}`} className="w-14 h-14 bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-blue-600 rounded-2xl border border-white/20 transition-all flex items-center justify-center group shadow-2xl">
                        <Edit className="w-6 h-6 group-active:scale-90" />
                     </Link>
                     <form action={async () => {
                       if(confirm('Əminsiniz?')) {
-                         await deleteAction(selectedAnimal.id);
+                         await deleteAction(selectedAnimal.id, targetUserId);
                          setSelectedAnimalId(null);
                       }
                     }}>
@@ -350,20 +412,22 @@ export default function HerdClient({
                         )}
                      </div>
 
-                     <div className="flex flex-col gap-4">
-                        <button 
-                          onClick={() => setShowForm(showForm === 'ai' ? 'none' : 'ai')}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-[24px] font-black transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 group"
-                        >
-                          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" /> Mayalanma
-                        </button>
-                        <button 
-                          onClick={() => setShowForm(showForm === 'calving' ? 'none' : 'calving')}
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-[24px] font-black transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3 group"
-                        >
-                          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" /> Doğum
-                        </button>
-                     </div>
+                     {getAnimalGroup(selectedAnimal) !== 'BUZOVLAR' && getAnimalGroup(selectedAnimal) !== 'DANALAR' && (
+                        <div className="flex flex-col gap-4">
+                           <button 
+                             onClick={() => setShowForm(showForm === 'ai' ? 'none' : 'ai')}
+                             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-[24px] font-black transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 group"
+                           >
+                             <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" /> Mayalanma
+                           </button>
+                           <button 
+                             onClick={() => setShowForm(showForm === 'calving' ? 'none' : 'calving')}
+                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-[24px] font-black transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3 group"
+                           >
+                             <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" /> Doğum
+                           </button>
+                        </div>
+                     )}
                   </div>
 
                   {/* RIGHT COLUMN: Timeline & History */}
@@ -435,12 +499,182 @@ export default function HerdClient({
                            >
                              Şəcərə
                            </button>
+                           {(getAnimalGroup(selectedAnimal) === 'BUZOVLAR' || getAnimalGroup(selectedAnimal) === 'DANALAR') && (
+                             <button 
+                               onClick={() => setActiveTab('weight')}
+                               className={`px-6 py-2.5 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'weight' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                             >
+                               Çəki
+                             </button>
+                           )}
                         </div>
 
                         {/* DATA LISTS */}
                         <div className="relative pl-4 space-y-8 before:absolute before:inset-y-0 before:left-[11px] before:w-0.5 before:bg-gray-100">
-                           {activeTab === 'repro' && (
-                             <>
+                           {activeTab === 'weight' && (
+                              <div className="space-y-6">
+                                <form action={async (formData) => {
+                                  const weight = parseFloat(formData.get('weight') as string);
+                                  const note = formData.get('note') as string;
+                                  if (selectedAnimal) await addWeightRecord(selectedAnimal.id, weight, note, targetUserId);
+                                }} className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex flex-col md:flex-row gap-4 items-end">
+                                   <div className="flex-1 space-y-2 w-full">
+                                      <label className="text-[10px] font-black text-amber-600 uppercase ml-1">Yeni Çəki (kq)</label>
+                                      <input name="weight" type="number" step="0.1" required className="w-full bg-white border-none rounded-xl p-3 text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-amber-500/20" placeholder="Məs: 45.5" />
+                                   </div>
+                                   <div className="flex-1 space-y-2 w-full">
+                                      <label className="text-[10px] font-black text-amber-600 uppercase ml-1">Qeyd</label>
+                                      <input name="note" type="text" className="w-full bg-white border-none rounded-xl p-3 text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-amber-500/20" placeholder="Məs: Normal böyümə" />
+                                   </div>
+                                   <button type="submit" className="bg-amber-500 text-white px-8 py-3 rounded-xl font-black text-sm shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-all w-full md:w-auto">Qeyd Et</button>
+                                </form>
+
+                                <div className="space-y-4">
+                                  {selectedAnimal.weightRecords?.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((record: any) => (
+                                    <div key={record.id} className="relative flex gap-8 items-start group">
+                                      <div className="absolute left-[-15px] top-2 w-4 h-4 rounded-full bg-amber-500 ring-8 ring-white z-10 group-hover:scale-125 transition-all shadow-lg" />
+                                      <div className="flex-1 bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex justify-between items-center group-hover:border-amber-300 transition-all">
+                                        <div>
+                                          <p className="text-2xl font-black text-gray-900">{record.weight} <span className="text-xs text-gray-400">kq</span></p>
+                                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(record.date).toLocaleDateString('az-AZ')}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                          {record.note && <span className="text-[10px] font-bold text-gray-500 italic bg-gray-50 px-3 py-1 rounded-lg">"{record.note}"</span>}
+                                          <button 
+                                            onClick={async () => { if(confirm('Silsin?')) await deleteWeightRecord(record.id, targetUserId); }}
+                                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {(!selectedAnimal.weightRecords || selectedAnimal.weightRecords.length === 0) && (
+                                    <p className="text-center py-10 text-gray-400 font-bold italic">Hələ heç bir çəki ölçümü yoxdur.</p>
+                                  )}
+                                </div>
+                              </div>
+                           )}
+                            {activeTab === 'repro' && (
+                              <div className="space-y-8">
+                                {/* GESTATION DASHBOARD */}
+                                {selectedAnimal.gender === 'FEMALE' && (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                                    {/* Hamiləlik Statusu */}
+                                    <div className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all min-w-0">
+                                      <div className={`absolute -right-2 -bottom-2 w-14 h-14 ${selectedAnimal.isPregnant ? 'text-pink-50' : 'text-gray-50'} opacity-50`}>
+                                        <ShieldCheck className="w-full h-full" />
+                                      </div>
+                                      <div className="relative z-10 flex flex-col h-full">
+                                        <div className={`w-9 h-9 ${selectedAnimal.isPregnant ? 'bg-pink-50 text-pink-600' : 'bg-gray-50 text-gray-400'} rounded-2xl flex items-center justify-center mb-3 shrink-0`}>
+                                          <ShieldCheck className="w-4 h-4" />
+                                        </div>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1 leading-tight">Hamiləlik Statusu</p>
+                                        <p className={`text-lg font-black leading-tight ${selectedAnimal.isPregnant ? 'text-pink-600' : 'text-gray-400'}`}>
+                                          {selectedAnimal.isPregnant ? 'HAMİLƏDİR' : 'BOŞDUR'}
+                                        </p>
+                                        {selectedAnimal.isPregnant && selectedAnimal.lastBreedingDate && (
+                                          <p className="text-[10px] font-bold text-gray-500 mt-1">
+                                            {Math.floor((new Date().getTime() - new Date(selectedAnimal.lastBreedingDate).getTime()) / (1000 * 3600 * 24 * 30))} aylıq
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Təxmini Doğuş */}
+                                    <div className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all min-w-0">
+                                      <div className="absolute -right-2 -bottom-2 w-14 h-14 text-blue-50 opacity-50">
+                                        <Calendar className="w-full h-full" />
+                                      </div>
+                                      <div className="relative z-10 flex flex-col h-full">
+                                        <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3 shrink-0">
+                                          <Calendar className="w-4 h-4" />
+                                        </div>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1 leading-tight">Təxmini Doğuş</p>
+                                        <p className="text-lg font-black text-blue-600 leading-tight">
+                                          {selectedAnimal.expectedCalvingDate ? new Date(selectedAnimal.expectedCalvingDate).toLocaleDateString('az-AZ') : '-'}
+                                        </p>
+                                        {selectedAnimal.expectedCalvingDate && (
+                                          <p className="text-[10px] font-bold text-gray-500 mt-1">
+                                            {Math.max(0, Math.ceil((new Date(selectedAnimal.expectedCalvingDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24)))} gün qalıb
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Vəziyyət */}
+                                    <div className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all min-w-0">
+                                      <div className={`absolute -right-2 -bottom-2 w-14 h-14 ${selectedAnimal.isDry ? 'text-amber-50' : 'text-emerald-50'} opacity-50`}>
+                                        <Milk className="w-full h-full" />
+                                      </div>
+                                      <div className="relative z-10 flex flex-col h-full">
+                                        <div className={`w-9 h-9 ${selectedAnimal.isDry ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'} rounded-2xl flex items-center justify-center mb-3 shrink-0`}>
+                                          <Milk className="w-4 h-4" />
+                                        </div>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1 leading-tight">Vəziyyət</p>
+                                        <p className={`text-lg font-black leading-tight ${selectedAnimal.isDry ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                          {selectedAnimal.isDry ? 'QURUDA' : 'SAĞILIR'}
+                                        </p>
+                                        {selectedAnimal.isDry && selectedAnimal.dryDate ? (
+                                          <p className="text-[10px] font-bold text-gray-500 mt-1 truncate">
+                                            {new Date(selectedAnimal.dryDate).toLocaleDateString('az-AZ')}
+                                          </p>
+                                        ) : (
+                                           <p className="text-[10px] font-bold text-gray-500 mt-1">Süd verimi aktiv</p>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Əməliyyatlar */}
+                                    <div className="bg-gray-50 p-4 rounded-[32px] border border-gray-100 flex flex-col gap-2 shrink-0">
+                                       <div className="flex flex-col gap-2 h-full">
+                                          <button 
+                                            onClick={() => setShowForm('ai')}
+                                            className="w-full bg-blue-600 text-white rounded-2xl flex items-center gap-3 p-3 hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98] border-b-4 border-blue-800"
+                                          >
+                                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                                              <Plus className="w-5 h-5"/>
+                                            </div>
+                                            <span className="text-[11px] font-black uppercase tracking-wider">Süni Mayalanma</span>
+                                          </button>
+                                          
+                                          <button 
+                                            onClick={() => setShowForm('pd')}
+                                            className="w-full bg-pink-600 text-white rounded-2xl flex items-center gap-3 p-3 hover:bg-pink-700 transition-all shadow-sm active:scale-[0.98] border-b-4 border-pink-800"
+                                          >
+                                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                                              <ShieldCheck className="w-5 h-5"/>
+                                            </div>
+                                            <span className="text-[11px] font-black uppercase tracking-wider">Hamiləlik Yoxlanışı</span>
+                                          </button>
+
+                                          <button 
+                                            onClick={() => setShowForm('dry')}
+                                            className="w-full bg-amber-500 text-white rounded-2xl flex items-center gap-3 p-3 hover:bg-amber-600 transition-all shadow-sm active:scale-[0.98] border-b-4 border-amber-700"
+                                          >
+                                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                                              <Milk className="w-5 h-5"/>
+                                            </div>
+                                            <span className="text-[11px] font-black uppercase tracking-wider">Quruya Çıxarma</span>
+                                          </button>
+
+                                          <button 
+                                            onClick={() => setShowForm('calving')}
+                                            className="w-full bg-emerald-600 text-white rounded-2xl flex items-center gap-3 p-3 hover:bg-emerald-700 transition-all shadow-sm active:scale-[0.98] border-b-4 border-emerald-800"
+                                          >
+                                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                                              <Milk className="w-5 h-5"/>
+                                            </div>
+                                            <span className="text-[11px] font-black uppercase tracking-wider">Doğuş Qeydi</span>
+                                          </button>
+                                       </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="space-y-6">
+
                                {selectedAnimal.calvingRecords?.map((record: any) => (
                                  <div key={record.id} className="relative flex gap-8 items-start group">
                                    <div className="absolute left-[-15px] top-2 w-4 h-4 rounded-full bg-emerald-500 ring-8 ring-white z-10 group-hover:scale-125 transition-all shadow-lg" />
@@ -474,7 +708,7 @@ export default function HerdClient({
                                                <Activity className="w-5 h-5"/>
                                             </div>
                                             <div>
-                                               <p className="font-black text-gray-900 text-base">Süni Mayalanma</p>
+                                               <p className="font-black text-gray-900 text-base">{record.eventType === 'INSEMINATION' ? 'Süni Mayalanma' : record.eventType === 'PREGNANCY_CONFIRMED' ? 'Hamiləlik Təsdiqi' : record.eventType === 'DRY_OFF' ? 'Quruya Çıxarma' : record.eventType}</p>
                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(record.date).toLocaleDateString('az-AZ')}</p>
                                             </div>
                                          </div>
@@ -486,7 +720,7 @@ export default function HerdClient({
                                               <Edit className="w-3.5 h-3.5" />
                                             </button>
                                             <button 
-                                              onClick={async () => { if(confirm('Silsin?')) await deleteAIAction?.(record.id); }}
+                                              onClick={async () => { if(confirm('Silsin?')) await deleteAIAction?.(record.id, targetUserId); }}
                                               className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
                                             >
                                               <Trash2 className="w-3.5 h-3.5" />
@@ -502,11 +736,27 @@ export default function HerdClient({
                                    </div>
                                  )
                                })}
-                             </>
+                                                             </div>
+                              </div>
+
                            )}
 
                            {activeTab === 'health' && (
                              <div className="space-y-8">
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <button 
+                                   onClick={() => { setEditingRecord(null); setShowForm('health'); }}
+                                   className="w-full border-2 border-dashed border-red-200 text-red-600 py-6 rounded-[32px] font-black text-sm hover:bg-red-50 transition-all flex items-center justify-center gap-3"
+                                 >
+                                    <Activity className="w-5 h-5" /> Yeni Müalicə
+                                 </button>
+                                 <button 
+                                   onClick={() => { setEditingRecord(null); setShowForm('vaccine'); }}
+                                   className="w-full border-2 border-dashed border-blue-200 text-blue-600 py-6 rounded-[32px] font-black text-sm hover:bg-blue-50 transition-all flex items-center justify-center gap-3"
+                                 >
+                                   <Syringe className="w-5 h-5" /> Peyvənd
+                                 </button>
+                               </div>
                                {selectedAnimal.healthRecords?.map((record: any) => (
                                  <div key={record.id} className="relative flex gap-8 items-start group">
                                    <div className="absolute left-[-15px] top-2 w-4 h-4 rounded-full bg-red-500 ring-8 ring-white z-10 group-hover:scale-125 transition-all shadow-lg" />
@@ -523,7 +773,7 @@ export default function HerdClient({
                                        </div>
                                        <div className="flex gap-2">
                                           <button onClick={() => { setEditingRecord(record); setShowForm('health'); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
-                                          <button onClick={async () => { if(confirm('Silsin?')) await deleteHealthAction?.(record.id); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                          <button onClick={async () => { if(confirm('Silsin?')) await deleteHealthAction?.(record.id, targetUserId); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                                        </div>
                                      </div>
                                      <p className="text-xs font-bold text-gray-500 mt-2">Dərmanlar: <span className="text-gray-900 font-black">{record.medications || '-'}</span></p>
@@ -534,18 +784,21 @@ export default function HerdClient({
                                  <div key={record.id} className="relative flex gap-8 items-start group">
                                    <div className="absolute left-[-15px] top-2 w-4 h-4 rounded-full bg-blue-400 ring-8 ring-white z-10 group-hover:scale-125 transition-all shadow-lg" />
                                    <div className="flex-1 bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1">
-                                      <div className="flex justify-between items-center mb-4">
-                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                                               <Syringe className="w-5 h-5"/>
-                                            </div>
-                                            <div>
-                                               <p className="font-black text-gray-900 text-base">{record.vaccineName}</p>
-                                               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(record.date).toLocaleDateString('az-AZ')}</p>
-                                            </div>
-                                         </div>
-                                         <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full uppercase tracking-widest">Vaksin</span>
-                                      </div>
+                                       <div className="flex justify-between items-center mb-4">
+                                          <div className="flex items-center gap-3">
+                                             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                                                <Syringe className="w-5 h-5"/>
+                                             </div>
+                                             <div>
+                                                <p className="font-black text-gray-900 text-base">{record.vaccineName}</p>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(record.date).toLocaleDateString('az-AZ')}</p>
+                                             </div>
+                                          </div>
+                                          <div className="flex gap-2">
+                                             <button onClick={() => { setEditingRecord(record); setShowForm('vaccine'); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
+                                             <button onClick={async () => { if(confirm('Silsin?')) await deleteVaccineAction?.(record.id, targetUserId); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                          </div>
+                                       </div>
                                    </div>
                                  </div>
                                ))}
@@ -575,9 +828,9 @@ export default function HerdClient({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <form action={async (formData) => {
             if (editingRecord && updateAIAction) {
-              await updateAIAction(editingRecord.id, formData);
+              await updateAIAction(editingRecord.id, formData, targetUserId);
             } else if (saveAIAction) {
-              await saveAIAction(formData);
+              await saveAIAction(formData, targetUserId);
             }
             setShowForm('none');
             setEditingRecord(null);
@@ -631,7 +884,7 @@ export default function HerdClient({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <form action={async (formData) => {
             if (saveCalvingAction) {
-              await saveCalvingAction(formData);
+              await saveCalvingAction(formData, targetUserId);
               setShowForm('none');
             }
           }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
@@ -691,9 +944,9 @@ export default function HerdClient({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <form action={async (formData) => {
             if (editingRecord && updateHealthAction) {
-              await updateHealthAction(editingRecord.id, formData);
+              await updateHealthAction(editingRecord.id, formData, targetUserId);
             } else if (addHealthAction) {
-              await addHealthAction(formData);
+              await addHealthAction(formData, targetUserId);
             }
             setShowForm('none');
             setEditingRecord(null);
@@ -729,7 +982,272 @@ export default function HerdClient({
           </form>
         </div>
       )}
+      {showForm === 'health' && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
+          <form action={async (formData) => {
+            if (editingRecord) {
+              await updateHealthAction?.(editingRecord.id, formData, targetUserId);
+            } else {
+              await addHealthAction?.(formData, targetUserId);
+            }
+            setShowForm('none');
+          }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-2xl space-y-8 relative">
+            <div className="flex justify-between items-center">
+               <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-600/20">
+                     <Activity className="w-6 h-6"/>
+                  </div>
+                  <h4 className="font-black text-gray-900 text-xl tracking-tight">{editingRecord ? 'Müalicəni Yenilə' : 'Yeni Sağlamlıq Qeydi'}</h4>
+               </div>
+               <button type="button" onClick={() => setShowForm('none')} className="w-10 h-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"><X className="w-5 h-5"/></button>
+            </div>
+            <input type="hidden" name="animalId" value={selectedAnimal?.id} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Xəstəlik / Problem</label>
+                <input name="disease" defaultValue={editingRecord?.disease || ''} required placeholder="Məs: Mastit" className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarix</label>
+                <input type="date" name="date" defaultValue={editingRecord ? new Date(editingRecord.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Müalicə Üsulu</label>
+                <input name="treatment" defaultValue={editingRecord?.treatment || ''} placeholder="Məs: İnyeksiya" className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Dərmanlar</label>
+                <input name="medications" defaultValue={editingRecord?.medications || ''} placeholder="Məs: Penicillin" className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Baytar Adı</label>
+                <input name="vetName" defaultValue={editingRecord?.vetName || ''} placeholder="Məs: Dr. Əli" className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Xərc (₼)</label>
+                <input type="number" step="0.01" name="cost" defaultValue={editingRecord?.cost || ''} placeholder="0.00" className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold" />
+              </div>
+              <div className="col-span-full space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Simptomlar və Qeydlər</label>
+                <textarea name="description" rows={3} defaultValue={editingRecord?.description || ''} className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold"></textarea>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <button type="submit" className="flex-1 bg-red-600 text-white py-5 rounded-3xl text-sm font-black hover:bg-red-700 transition-all shadow-xl shadow-red-600/20">Yadda Saxla</button>
+              <button type="button" onClick={() => setShowForm('none')} className="px-10 py-5 bg-gray-50 text-gray-500 rounded-3xl text-sm font-black hover:bg-gray-100 transition-all border border-gray-100">Ləğv Et</button>
+            </div>
+          </form>
+        </div>
+      )}
 
+      {showForm === 'vaccine' && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <form action={async (formData) => {
+            if (editingRecord && updateVaccineAction) {
+              await updateVaccineAction(editingRecord.id, formData, targetUserId);
+            } else if (addVaccineAction) {
+              await addVaccineAction(formData, targetUserId);
+            }
+            setShowForm('none');
+            setEditingRecord(null);
+          }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
+            <div className="flex justify-between items-center">
+               <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+                     <Syringe className="w-6 h-6"/>
+                  </div>
+                  <h4 className="font-black text-gray-900 text-xl tracking-tight">{editingRecord ? 'Vaksini Yenilə' : 'Yeni Vaksinasiya'}</h4>
+               </div>
+               <button type="button" onClick={() => setShowForm('none')} className="w-10 h-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"><X className="w-5 h-5"/></button>
+            </div>
+            <input type="hidden" name="animalId" value={selectedAnimal?.id} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Vaksin Adı</label>
+                <input name="vaccineName" defaultValue={editingRecord?.vaccineName || ''} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarix</label>
+                <input type="date" name="date" defaultValue={editingRecord ? new Date(editingRecord.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Dozaj</label>
+                <input name="dose" defaultValue={editingRecord?.dose || '2ml'} className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Qeyd</label>
+                <input name="notes" defaultValue={editingRecord?.notes || ''} className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold" />
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <button type="submit" className="flex-1 bg-blue-600 text-white py-5 rounded-3xl text-sm font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20">Yadda Saxla</button>
+              <button type="button" onClick={() => setShowForm('none')} className="px-10 py-5 bg-gray-50 text-gray-500 rounded-3xl text-sm font-black hover:bg-gray-100 transition-all border border-gray-100">Ləğv Et</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showForm === 'pd' && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <form action={async (formData) => {
+            await savePDAction?.(formData, targetUserId);
+            setShowForm('none');
+          }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
+            <div className="flex justify-between items-center">
+               <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-pink-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-pink-600/20">
+                     <ShieldCheck className="w-6 h-6"/>
+                  </div>
+                  <h4 className="font-black text-gray-900 text-xl tracking-tight">Hamiləlik Yoxlanışı (PD)</h4>
+               </div>
+               <button type="button" onClick={() => setShowForm('none')} className="w-10 h-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
+                  <X className="w-5 h-5"/>
+               </button>
+            </div>
+            <input type="hidden" name="animalId" value={selectedAnimal?.id} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Nəticə</label>
+                <select name="result" required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-pink-500/10 transition-all font-bold appearance-none">
+                  <option value="PREGNANT">MÜSBƏT (HAMİLƏDİR)</option>
+                  <option value="NEGATIVE">MƏNFİ (BOŞDUR)</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Yoxlanış Tarixi</label>
+                <input type="date" name="checkDate" defaultValue={new Date().toISOString().split('T')[0]} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-pink-500/10 transition-all font-bold" />
+              </div>
+              <div className="col-span-full space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Qeydlər</label>
+                <textarea name="notes" rows={2} placeholder="Məs: Uşaqlıq vəziyyəti normaldır..." className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-pink-500/10 transition-all font-bold"></textarea>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <button type="submit" className="flex-1 bg-pink-600 text-white py-5 rounded-3xl text-sm font-black hover:bg-pink-700 transition-all shadow-xl shadow-pink-600/20">Yadda Saxla</button>
+              <button type="button" onClick={() => setShowForm('none')} className="px-10 py-5 bg-gray-50 text-gray-500 rounded-3xl text-sm font-black hover:bg-gray-100 transition-all border border-gray-100">Ləğv Et</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showForm === 'dry' && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <form action={async (formData) => {
+            await saveDryAction?.(formData, targetUserId);
+            setShowForm('none');
+          }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
+            <div className="flex justify-between items-center">
+               <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-600/20">
+                     <Database className="w-6 h-6"/>
+                  </div>
+                  <h4 className="font-black text-gray-900 text-xl tracking-tight">Quruya Çıxarma</h4>
+               </div>
+               <button type="button" onClick={() => setShowForm('none')} className="w-10 h-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
+                  <X className="w-5 h-5"/>
+               </button>
+            </div>
+            <input type="hidden" name="animalId" value={selectedAnimal?.id} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarix</label>
+                <input type="date" name="dryDate" defaultValue={new Date().toISOString().split('T')[0]} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 transition-all font-bold" />
+              </div>
+              <div className="col-span-full space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Qeydlər</label>
+                <textarea name="notes" rows={2} placeholder="Süd verimi kəsildi..." className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 transition-all font-bold"></textarea>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <button type="submit" className="flex-1 bg-amber-600 text-white py-5 rounded-3xl text-sm font-black hover:bg-amber-700 transition-all shadow-xl shadow-amber-600/20">Təsdiqlə</button>
+              <button type="button" onClick={() => setShowForm('none')} className="px-10 py-5 bg-gray-50 text-gray-500 rounded-3xl text-sm font-black hover:bg-gray-100 transition-all border border-gray-100">Ləğv Et</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+
+      {showForm === 'mass_vaccine' && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <form action={async (formData) => {
+            const animalsInGroup = animals.filter(a => getAnimalGroup(a) === massVaccineGroup && !excludedAnimals.includes(a.id));
+            formData.set('animalIds', JSON.stringify(animalsInGroup.map(a => a.id)));
+            await addMassVaccineAction?.(formData, targetUserId);
+            setShowForm('none');
+          }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-2xl space-y-8 animate-in zoom-in-95">
+            <div className="flex justify-between items-center">
+               <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-600/20">
+                     <Users className="w-6 h-6"/>
+                  </div>
+                  <h4 className="font-black text-gray-900 text-xl tracking-tight">Kütləvi Vaksinasiya</h4>
+               </div>
+               <button type="button" onClick={() => setShowForm('none')} className="w-10 h-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"><X className="w-5 h-5"/></button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Qrup Seçin</label>
+                <select 
+                  value={massVaccineGroup} 
+                  onChange={(e) => { setMassVaccineGroup(e.target.value); setExcludedAnimals([]); }}
+                  className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold appearance-none"
+                >
+                  {['YENİ DOĞANLAR', 'SAĞMAL 1', 'SAĞMAL 2', 'QURUYA ÇIXANLAR', 'DOĞUMA 1 AY QALMIŞLAR', 'BUZOVLAR', 'DANALAR', 'DÜYƏLƏR'].map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Vaksin Adı</label>
+                <input name="vaccineName" required placeholder="Məs: Şap" className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarix</label>
+                <input type="date" name="date" defaultValue={new Date().toISOString().split('T')[0]} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Dozaj</label>
+                <input name="dose" defaultValue="2ml" className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+               <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+                    Heyvanlar ({animals.filter(a => getAnimalGroup(a) === massVaccineGroup).length} nəfər)
+                  </label>
+                  <p className="text-[10px] font-bold text-purple-600">{excludedAnimals.length} heyvan çıxarılıb</p>
+               </div>
+               <div className="max-h-40 overflow-y-auto bg-gray-50 rounded-2xl p-4 border border-gray-100 grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {animals.filter(a => getAnimalGroup(a) === massVaccineGroup).map(animal => (
+                    <div 
+                      key={animal.id} 
+                      onClick={() => {
+                        if (excludedAnimals.includes(animal.id)) {
+                          setExcludedAnimals(excludedAnimals.filter(id => id !== animal.id));
+                        } else {
+                          setExcludedAnimals([...excludedAnimals, animal.id]);
+                        }
+                      }}
+                      className={`flex items-center gap-2 p-2 rounded-xl cursor-pointer transition-all border ${excludedAnimals.includes(animal.id) ? 'bg-white border-gray-200 opacity-40' : 'bg-purple-50 border-purple-100'}`}
+                    >
+                       <div className={`w-4 h-4 rounded-full flex items-center justify-center ${excludedAnimals.includes(animal.id) ? 'bg-gray-200' : 'bg-purple-600'}`}>
+                          {!excludedAnimals.includes(animal.id) && <Check className="w-2 h-2 text-white" />}
+                       </div>
+                       <span className="text-xs font-black">{animal.tagNumber}</span>
+                    </div>
+                  ))}
+               </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button type="submit" className="flex-1 bg-purple-600 text-white py-5 rounded-3xl text-sm font-black hover:bg-purple-700 transition-all shadow-xl shadow-purple-600/20">Yadda Saxla</button>
+              <button type="button" onClick={() => setShowForm('none')} className="px-10 py-5 bg-gray-50 text-gray-500 rounded-3xl text-sm font-black hover:bg-gray-100 transition-all border border-gray-100">Ləğv Et</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

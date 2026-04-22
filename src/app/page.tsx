@@ -1,11 +1,30 @@
 import Link from "next/link";
 import { getAnimals } from "@/app/actions/herd";
-import { Users, Droplets, Calendar, TrendingUp, Plus, Activity, LogOut, Trash2, Database, Milk, Wallet, Stethoscope, Info, Check } from "lucide-react";
+import { 
+  Users, 
+  Droplets, 
+  Calendar, 
+  TrendingUp, 
+  Plus, 
+  Activity, 
+  LogOut, 
+  Database, 
+  Milk, 
+  Wallet, 
+  Stethoscope, 
+  Info, 
+  Check,
+  Shield,
+  Settings
+} from "lucide-react";
 import { getAnimalGroup } from "@/lib/herd-utils";
+import { auth, signOut } from "@/auth";
 
 export default async function DashboardPage() {
+  const session = await auth();
   const animals = await getAnimals();
 
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   // Group Counts
   const counts = animals.reduce((acc: any, a) => {
@@ -22,7 +41,7 @@ export default async function DashboardPage() {
   const calves = counts['BUZOVLAR'] || 0;
   const heifers = counts['DANALAR'] || 0;
 
-  // Status Summary (Re-calculating for the status section)
+  // Status Summary
   const today = new Date();
   const fourteenDaysAgo = new Date();
   fourteenDaysAgo.setDate(today.getDate() - 14);
@@ -40,7 +59,6 @@ export default async function DashboardPage() {
   }).length;
 
   const milking = milking1 + milking2 + fresh;
-  const dry = dryOff;
   const adultFemales = animals.filter(a => a.gender === 'FEMALE' && (new Date().getTime() - new Date(a.birthDate || 0).getTime()) / (1000 * 60 * 60 * 24) > 450).length;
   const empty = Math.max(0, adultFemales - pregnant);
 
@@ -48,20 +66,42 @@ export default async function DashboardPage() {
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 animate-in">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-            Xoş Gəldiniz <span className="text-blue-600">Rufet!</span>
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+              Xoş Gəldiniz <span className="text-blue-600">{session?.user?.name?.split(' ')[0] || 'İstifadəçi'}!</span>
+            </h1>
+            {isAdmin && (
+              <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full border border-blue-100 flex items-center gap-1.5 shadow-sm">
+                <Shield className="w-3 h-3" /> ADMIN
+              </span>
+            )}
+          </div>
           <p className="text-gray-500 mt-2 font-medium flex items-center gap-2">
-            <Calendar className="w-4 h-4" /> 21 Aprel, 2026 • Sürü vəziyyəti stabildir.
+            <Calendar className="w-4 h-4" /> {new Date().toLocaleDateString('az-AZ', { day: 'numeric', month: 'long', year: 'numeric' })} • Sürü vəziyyəti stabildir.
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/staff" className="bg-white border border-gray-200 hover:border-blue-500 hover:text-blue-600 px-6 py-3 rounded-2xl font-bold transition-all shadow-sm flex items-center gap-2">
-            <Users className="w-5 h-5" /> Həkimlər
+        
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <Link href="/admin/users" className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-slate-900/20 flex items-center gap-2 hover:bg-black">
+              <Users className="w-5 h-5" /> İstifadəçilər
+            </Link>
+          )}
+          <Link href="/staff" className="bg-white border border-gray-200 hover:border-blue-500 hover:text-blue-600 px-6 py-3.5 rounded-2xl font-bold transition-all shadow-sm flex items-center gap-2">
+            <Stethoscope className="w-5 h-5" /> Həkimlər
           </Link>
           <Link href="/herd/new" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-blue-600/20 flex items-center gap-2 transform hover:scale-105">
             <Plus className="w-5 h-5" /> Yeni Heyvan
           </Link>
+          
+          <form action={async () => {
+            'use server'
+            await signOut()
+          }}>
+            <button className="w-12 h-12 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl border border-red-100 hover:bg-red-100 transition-all shadow-sm">
+              <LogOut className="w-5 h-5" />
+            </button>
+          </form>
         </div>
       </header>
 
@@ -74,7 +114,7 @@ export default async function DashboardPage() {
           <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-1">Cəmi Heyvan</p>
           <h3 className="text-4xl font-black text-gray-900">{animals.length}</h3>
           <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 w-fit px-3 py-1 rounded-full">
-            <TrendingUp className="w-3 h-3" /> +2 bu ay
+            <TrendingUp className="w-3 h-3" /> Aktiv Sürü
           </div>
         </div>
 
@@ -107,7 +147,7 @@ export default async function DashboardPage() {
           <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-1">Müalicədə</p>
           <h3 className="text-4xl font-black text-gray-900">{sick}</h3>
           <div className="mt-4 flex items-center gap-2 text-red-600 font-bold text-xs bg-red-50 w-fit px-3 py-1 rounded-full">
-            <Activity className="w-3 h-3" /> Təcili baxış tələb olunur
+            <Activity className="w-3 h-3" /> Sağlamlıq qeydi
           </div>
         </div>
       </section>
@@ -120,7 +160,7 @@ export default async function DashboardPage() {
             <p className="text-gray-500 text-sm font-medium mt-1">Sürünün bioloji və məhsuldarlıq vəziyyəti</p>
           </div>
           <Link href="/herd" className="text-blue-600 font-bold text-sm hover:underline flex items-center gap-2">
-            Bütün Siyahı <LogOut className="w-4 h-4" />
+            Bütün Siyahı <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
@@ -271,3 +311,7 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
+const ArrowRight = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+);

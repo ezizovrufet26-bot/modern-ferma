@@ -24,17 +24,40 @@ export default function FinanceClient({
   initialRecords, 
   addAction, 
   deleteAction, 
-  updateAction 
+  updateAction,
+  targetUserId,
+  staffList = []
 }: { 
   initialRecords: any[], 
-  addAction: (formData: FormData) => Promise<void>,
-  deleteAction: (id: string) => Promise<void>,
-  updateAction: (id: string, formData: FormData) => Promise<void>
+  addAction: (formData: FormData, targetUserId?: string) => Promise<void>,
+  deleteAction: (id: string, targetUserId?: string) => Promise<void>,
+  updateAction: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
+  targetUserId?: string,
+  staffList?: any[]
 }) {
   const [records, setRecords] = useState(initialRecords);
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>(editingRecord?.category || 'OTHER');
+
+  // Update handlers to pass targetUserId
+  const handleAdd = async (formData: FormData) => {
+    await addAction(formData, targetUserId);
+    setShowModal(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if(confirm('Silsin?')) {
+      await deleteAction(id, targetUserId);
+    }
+  };
+
+  const handleUpdate = async (id: string, formData: FormData) => {
+    await updateAction(id, formData, targetUserId);
+    setShowModal(false);
+  };
 
   const totalIncome = initialRecords
     .filter(r => r.type === 'INCOME')
@@ -79,8 +102,12 @@ export default function FinanceClient({
       case 'MILK_SALE': return 'Süd Satışı';
       case 'FEED': return 'Yem Xərci';
       case 'VET': return 'Baytar Xərci';
-      case 'STAFF': return 'Maaş';
+      case 'SALARY_HEAD_VET': return 'Baş Həkim Maaşı';
+      case 'SALARY_VET': return 'Həkim Maaşı';
+      case 'SALARY_TECH': return 'Texnik Maaşı';
+      case 'SALARY_WORKER': return 'İşçi Maaşı';
       case 'ANIMALS': return 'Heyvan Alışı';
+      case 'ANIMAL_SALE': return 'Heyvan Satışı';
       default: return 'Digər';
     }
   };
@@ -275,7 +302,7 @@ export default function FinanceClient({
                                  <Edit className="w-4 h-4" />
                               </button>
                               <button 
-                                onClick={async () => { if(confirm('Silsin?')) await deleteAction(record.id); }}
+                                onClick={() => handleDelete(record.id)}
                                 className="w-10 h-10 bg-gray-100 text-gray-400 hover:bg-red-600 hover:text-white rounded-xl transition-all flex items-center justify-center"
                               >
                                  <Trash2 className="w-4 h-4" />
@@ -302,15 +329,15 @@ export default function FinanceClient({
 
       {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
           <form action={async (formData) => {
             if (editingRecord) {
-              await updateAction(editingRecord.id, formData);
+              await handleUpdate(editingRecord.id, formData);
             } else {
-              await addAction(formData);
+              await handleAdd(formData);
             }
             setShowModal(false);
-          }} className="bg-white p-10 rounded-[48px] shadow-2xl w-full max-w-xl space-y-10 animate-in zoom-in-95">
+          }} className="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[48px] shadow-2xl w-full max-w-xl space-y-8 md:space-y-10 relative">
             <div className="flex justify-between items-center">
                <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-600/20">
@@ -336,15 +363,56 @@ export default function FinanceClient({
               </div>
               <div className="space-y-3">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Kateqoriya</label>
-                <select name="category" defaultValue={editingRecord?.category || 'OTHER'} className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black appearance-none">
+                <select 
+                  name="category" 
+                  defaultValue={editingRecord?.category || 'OTHER'} 
+                  onChange={(e) => setActiveCategory(e.target.value)}
+                  className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black appearance-none"
+                >
                   <option value="MILK_SALE">Süd Satışı</option>
+                  <option value="ANIMAL_SALE">Heyvan Satışı (+)</option>
                   <option value="FEED">Yem Xərci</option>
                   <option value="VET">Baytar Xərci</option>
-                  <option value="STAFF">Maaş</option>
-                  <option value="ANIMALS">Heyvan Alışı</option>
+                  <option value="SALARY_HEAD_VET">Baş Həkim Maaşı (-)</option>
+                  <option value="SALARY_VET">Həkim Maaşı (-)</option>
+                  <option value="SALARY_TECH">Texnik Maaşı (-)</option>
+                  <option value="SALARY_WORKER">İşçi Maaşı (-)</option>
+                  <option value="ANIMALS">Heyvan Alışı (-)</option>
                   <option value="OTHER">Digər</option>
                 </select>
               </div>
+
+              {activeCategory.startsWith('SALARY_') && staffList && staffList.length > 0 && (
+                <div className="space-y-3 col-span-full">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Müvafiq İşçini Seçin (Məlumatları doldurmaq üçün)</label>
+                  <select 
+                    className="w-full text-sm px-6 py-5 bg-blue-50 border border-blue-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black appearance-none"
+                    onChange={(e) => {
+                      const staff = staffList.find(s => s.id === e.target.value);
+                      if (staff) {
+                        const descInput = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
+                        if (descInput) descInput.value = `${staff.name} - ${getCategoryLabel(activeCategory)} ödənişi`;
+                        const amountInput = document.querySelector('input[name="amount"]') as HTMLInputElement;
+                        if (amountInput && staff.salary) amountInput.value = staff.salary.toString();
+                      }
+                    }}
+                  >
+                    <option value="">Siyahıdan seçin...</option>
+                    {staffList
+                      .filter(s => {
+                         if (activeCategory === 'SALARY_HEAD_VET') return s.role === 'BAS_HEKIM';
+                         if (activeCategory === 'SALARY_VET') return s.role === 'HEKIM';
+                         if (activeCategory === 'SALARY_TECH') return s.role === 'TEXNIK';
+                         if (activeCategory === 'SALARY_WORKER') return s.role === 'ISCI';
+                         return true;
+                      })
+                      .map(s => (
+                        <option key={s.id} value={s.id}>{s.name} - ₼{s.salary}</option>
+                      ))
+                    }
+                  </select>
+                </div>
+              )}
               <div className="space-y-3">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Məbləğ (AZN)</label>
                 <div className="relative">

@@ -7,9 +7,84 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          String    @default("USER") // ADMIN, USER
+  isActive      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  animals       Animal[]
+  staff         Staff[]
+  finance       FinanceRecord[]
+  feeds         FeedItem[]
+  rations       Ration[]
+  feedings      FeedingRecord[]
+  weightRecords WeightRecord[]
+}
+
+model FeedItem {
+  id            String    @id @default(cuid())
+  name          String
+  unit          String    @default("kg") // kg, ton, litr
+  costPerUnit   Float     @default(0)    // 1 vahidin qiyməti (məs: 1 kq arpa neçəyədir?)
+  stock         Float     @default(0)    // Ambardakı qalıq
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  rationItems   RationItem[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Ration {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  items         RationItem[]
+  feedings      FeedingRecord[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model RationItem {
+  id            String    @id @default(cuid())
+  amount        Float     // Bu rasionda bu yemden ne qeder var (məs: 5 kq)
+  
+  rationId      String
+  ration        Ration    @relation(fields: [rationId], references: [id], onDelete: Cascade)
+  
+  feedItemId    String
+  feedItem      FeedItem  @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+}
+
+model FeedingRecord {
+  id            String    @id @default(cuid())
+  date          DateTime  @default(now())
+  groupName     String    // Hansı qrup yemləndi (məs: SAĞMAL 1)
+  animalCount   Int       @default(0)
+  frequency     Int       @default(3)    // Gündə neçə dəfə yemlənir
+  completedMeals Int      @default(3)    // Neçə yemləmə tamamlanıb
+  totalCost     Float     @default(0)
+  
+  rationId      String
+  ration        Ration    @relation(fields: [rationId], references: [id])
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Animal {
   id             String               @id @default(uuid())
-  tagNumber      String               @unique
+  tagNumber      String
   name           String?
   breed          String?
   gender         String               @default("FEMALE")
@@ -18,16 +93,42 @@ model Animal {
   groupName      String               @default("BUZOV_QRUPU")
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
+  
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   motherId       String?
   sireCode       String?
   mother         Animal?              @relation("MotherToChild", fields: [motherId], references: [id])
   children       Animal[]             @relation("MotherToChild")
+
+  isPregnant          Boolean              @default(false)
+  lastBreedingDate    DateTime?
+  expectedCalvingDate DateTime?
+  isDry               Boolean              @default(false)
+  dryDate             DateTime?
 
   milkRecords    MilkRecord[]
   healthRecords  HealthRecord[]
   reproRecords   ReproductionRecord[]
   calvingRecords CalvingRecord[]
   vaccineRecords VaccineRecord[]
+  weightRecords  WeightRecord[]
+
+  @@unique([tagNumber, userId])
+}
+
+model WeightRecord {
+  id            String    @id @default(cuid())
+  date          DateTime  @default(now())
+  weight        Float     // kq ilə
+  note          String?
+  
+  animalId      String
+  animal        Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model MilkRecord {
@@ -74,9 +175,14 @@ model VaccineRecord {
 model Staff {
   id          String   @id @default(uuid())
   name        String
-  role        String   @default("HEKIM") // HEKIM, BAS_HEKIM, TEXNIK
+  role        String   @default("HEKIM") // HEKIM, BAS_HEKIM, TEXNIK, ISCI
   phone       String?
+  salary      Float?   @default(0)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   reproRecords ReproductionRecord[]
 }
@@ -116,4 +222,7 @@ model FinanceRecord {
   amount      Float
   description String?
   createdAt   DateTime @default(now())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

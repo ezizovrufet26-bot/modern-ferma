@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Home, List, Stethoscope, Droplets, Wallet, Settings, LayoutDashboard, Database, Syringe, Banknote, ShieldCheck } from "lucide-react";
+import { Home, List, Stethoscope, Droplets, Wallet, Settings, LayoutDashboard, Database, Syringe, Banknote, ShieldCheck, Wheat } from "lucide-react";
 
 export default function Sidebar() {
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Sürü İdarəetmə", href: "/herd", icon: Database },
     { name: "Süd Verimi", href: "/milk", icon: Droplets },
+    { name: "Yemləmə", href: "/feeding", icon: Wheat },
     { name: "Sağlamlıq", href: "/health", icon: Syringe },
     { name: "Maliyyə", href: "/finance", icon: Banknote },
     { name: "Təhlükəsizlik", href: "/security", icon: ShieldCheck },
