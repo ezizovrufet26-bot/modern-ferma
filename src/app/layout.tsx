@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import MobileHeader from "@/components/MobileHeader";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,10 +39,13 @@ export default function RootLayout({
         <link rel="icon" href="/app_icon.png" />
         <link rel="apple-touch-icon" href="/app_icon.png" />
       </head>
-      <body className={`${inter.className} bg-gray-50 text-gray-900 flex`} suppressHydrationWarning>
+      <body className={`${inter.className} bg-gray-50 text-gray-900 flex flex-col md:flex-row`} suppressHydrationWarning>
         <Sidebar />
-        <main className="flex-1 h-screen overflow-y-auto">
-          {children}
+        <main className="flex-1 h-screen overflow-y-auto flex flex-col">
+          <MobileHeader />
+          <div className="flex-1">
+            {children}
+          </div>
         </main>
         <script
           dangerouslySetInnerHTML={{
