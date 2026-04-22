@@ -1,0 +1,3 @@
+{
+  "query": "{ project(id: \"698f743c-b411-49e3-a1e2-546c1a5de366\") { name environments { edges { node { id name } } } services { edges { node { id name } } } } }"
+}

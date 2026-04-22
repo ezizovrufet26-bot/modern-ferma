@@ -45,8 +45,9 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-600/30 rotate-3 transform hover:rotate-0 transition-transform duration-500 border border-white/10">
-            <Database className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 relative mx-auto mb-6 shadow-2xl shadow-blue-600/30 rotate-3 transform hover:rotate-0 transition-transform duration-500">
+             <div className="absolute inset-0 bg-blue-500 blur-xl opacity-30 animate-pulse" />
+             <img src="/app_icon.png" className="w-full h-full rounded-3xl object-cover relative z-10 border border-white/10" alt="Logo" />
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
             Modern<span className="text-blue-500">Ferma</span>
@@ -110,10 +111,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-10 pt-8 border-t border-white/5 text-center">
-            <p className="text-slate-500 text-xs font-bold">
-              Hesabınız yoxdur? <span className="text-blue-500 hover:underline cursor-pointer">Bizimlə əlaqə saxlayın</span>
-            </p>
+          <div className="mt-10 pt-8 border-t border-white/5 text-center space-y-4">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Hesabınız yoxdur?</p>
+            <button 
+              onClick={() => router.push('/register')}
+              className="w-full bg-white/5 hover:bg-white/10 text-white py-4 rounded-[20px] font-black text-xs border border-white/10 transition-all active:scale-95"
+            >
+              YENİ HESAB YARAT
+            </button>
           </div>
         </div>
 
