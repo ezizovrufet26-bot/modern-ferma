@@ -31,7 +31,7 @@ export async function POST(req: Request) {
         name,
         email,
         password: hashedPassword,
-        isActive: false, // Default olaraq passiv
+        isActive: true, // Qeydiyyatdan sonra dərhal aktiv olsun
         role: 'USER',
       },
     });

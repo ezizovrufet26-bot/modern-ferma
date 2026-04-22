@@ -48,9 +48,9 @@ export default function RegisterPage() {
           <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-emerald-500/20">
             <CheckCircle2 className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-3xl font-black text-white mb-4">Müraciətiniz Alındı!</h2>
+          <h2 className="text-3xl font-black text-white mb-4">Xoş Gəldiniz!</h2>
           <p className="text-slate-400 font-medium mb-8">
-            Hesabınız yaradıldı. Rufet bəy tərəfindən təsdiqləndikdən sonra daxil ola biləcəksiniz. Zəhmət olmasa bizimlə əlaqə saxlayın.
+            Hesabınız uğurla yaradıldı. Artıq daxil olaraq fermanızı idarə etməyə başlaya bilərsiniz.
           </p>
           <Link href="/login" className="inline-flex items-center gap-2 text-blue-500 font-black uppercase tracking-widest hover:text-blue-400 transition-colors">
             Giriş səhifəsinə qayıt <ArrowRight className="w-4 h-4" />
@@ -68,8 +68,9 @@ export default function RegisterPage() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-600/30 border border-white/10">
-            <Database className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 relative mx-auto mb-6 shadow-2xl shadow-blue-600/30">
+             <div className="absolute inset-0 bg-blue-500 blur-xl opacity-30 animate-pulse" />
+             <img src="/app_icon.png" className="w-full h-full rounded-2xl object-cover relative z-10 border border-white/10" alt="Logo" />
           </div>
           <h1 className="text-3xl font-black text-white tracking-tighter mb-2">
             Yeni <span className="text-blue-500">Hesab Yaradın</span>
