@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Home, List, Stethoscope, Droplets, Wallet, Settings, LayoutDashboard, Database, Syringe, Banknote, ShieldCheck, Wheat, Menu, X, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Hide sidebar on auth pages
+  if (pathname === '/login' || pathname === '/register') return null;
 
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
