@@ -81,23 +81,23 @@ export default async function DashboardPage() {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0 scrollbar-hide w-full md:w-auto -mx-2 px-2">
           {isAdmin && (
-            <Link href="/admin/users" className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-slate-900/20 flex items-center gap-2 hover:bg-black">
-              <Users className="w-5 h-5" /> İstifadəçilər
+            <Link href="/admin/users" className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-slate-900/20 flex items-center gap-2 hover:bg-black whitespace-nowrap shrink-0">
+              <Users className="w-5 h-5" /> <span className="text-sm">İstifadəçilər</span>
             </Link>
           )}
-          <Link href="/staff" className="bg-white border border-gray-200 hover:border-blue-500 hover:text-blue-600 px-6 py-3.5 rounded-2xl font-bold transition-all shadow-sm flex items-center gap-2">
-            <Stethoscope className="w-5 h-5" /> Həkimlər
+          <Link href="/staff" className="bg-white border border-gray-200 hover:border-blue-500 hover:text-blue-600 px-6 py-3.5 rounded-2xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0">
+            <Stethoscope className="w-5 h-5" /> <span className="text-sm">Həkimlər</span>
           </Link>
-          <Link href="/herd/new" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-blue-600/20 flex items-center gap-2 transform hover:scale-105">
-            <Plus className="w-5 h-5" /> Yeni Heyvan
+          <Link href="/herd/new" className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-blue-600/20 flex items-center gap-2 transform hover:scale-105 whitespace-nowrap shrink-0">
+            <Plus className="w-5 h-5" /> <span className="text-sm">Yeni Heyvan</span>
           </Link>
           
           <form action={async () => {
             'use server'
             await signOut({ redirectTo: '/login' })
-          }}>
+          }} className="shrink-0">
             <button className="w-12 h-12 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl border border-red-100 hover:bg-red-100 transition-all shadow-sm">
               <LogOut className="w-5 h-5" />
             </button>
