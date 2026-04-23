@@ -64,6 +64,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 animate-in">
+      <div className="bg-blue-600 text-white text-center py-2 rounded-xl text-xs font-black tracking-widest shadow-lg animate-pulse">
+        🚀 MODERN FERMA v2.0 - LATEST UPDATE (23 APRIL) 🚀
+      </div>
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-3">

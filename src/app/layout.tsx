@@ -13,19 +13,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Modern Ferma",
-  },
-  formatDetection: {
-    telephone: false,
+    title: "Modern Ferma v2",
   },
 };
 
 export const viewport = {
-  themeColor: "#dc2626",
+  themeColor: "#2563eb",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export default function RootLayout({
