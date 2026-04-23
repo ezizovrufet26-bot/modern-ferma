@@ -1,3 +1,1 @@
-{
-  "query": "{ project(id: \"698f743c-b411-49e3-a1e2-546c1a5de366\") { name environments { edges { node { id name } } } services { edges { node { id name } } } } }"
-}
+{"query": "{ deploymentLogs(deploymentId: \"3387341b-6088-4365-8d84-34b42680e29b\", limit: 100) { message severity timestamp } }"}
