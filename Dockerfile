@@ -11,13 +11,10 @@ RUN npm ci
 # Copy all source files
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client (does not need DATABASE_URL)
 RUN npx prisma generate
 
-# Push database schema
-RUN npx prisma db push
-
-# Build Next.js
+# Build Next.js (Tailwind CSS compiles here)
 RUN npm run build
 
 # Expose port
@@ -26,5 +23,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start the app
-CMD ["npm", "run", "start"]
+# Start: push DB schema first, then start Next.js
+CMD ["sh", "-c", "npx prisma db push && npm run start"]
