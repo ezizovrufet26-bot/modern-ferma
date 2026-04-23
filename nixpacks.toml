@@ -5,7 +5,7 @@ nixPkgs = ["nodejs"]
 cmds = ["npm install --include=dev"]
 
 [phases.build]
-cmds = ["npx prisma generate", "npx prisma db push", "npm run build", "cp -r .next/static .next/standalone/.next/static", "cp -r public .next/standalone/public", "cp prisma/schema.prisma .next/standalone/prisma/schema.prisma || true", "cp dev.db .next/standalone/dev.db || true"]
+cmds = ["npx prisma generate", "npx prisma db push", "npm run build"]
 
 [start]
-cmd = "cd .next/standalone && node server.js"
+cmd = "npx prisma db push && npm run start"
