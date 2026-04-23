@@ -80,6 +80,10 @@ export async function addAnimal(formData: FormData, targetUserId?: string) {
   const motherInput = formData.get('motherId') as string
   const sireCode = formData.get('sireCode') as string
 
+  // New fields
+  const lastCalvingDateStr = formData.get('lastCalvingDate') as string
+  const calfTag = formData.get('calfTag') as string
+
   let birthDate = birthDateStr ? new Date(birthDateStr) : null
   let motherId = null
 
@@ -90,7 +94,7 @@ export async function addAnimal(formData: FormData, targetUserId?: string) {
     if (mother) motherId = mother.id
   }
 
-  await prisma.animal.create({
+  const newAnimal = await prisma.animal.create({
     data: {
       tagNumber,
       name: name || null,
@@ -104,6 +108,37 @@ export async function addAnimal(formData: FormData, targetUserId?: string) {
       userId: userIdToUse
     }
   })
+
+  // Handle Last Calving Date and Calf
+  if (lastCalvingDateStr) {
+    const calvingDate = new Date(lastCalvingDateStr)
+    
+    let calfId = null
+    if (calfTag) {
+      const calf = await prisma.animal.create({
+        data: {
+          tagNumber: calfTag,
+          gender: 'FEMALE', // Default to female or we could add a gender field for calf
+          birthDate: calvingDate,
+          motherId: newAnimal.id,
+          breed: breed || null,
+          stage: 'CALF',
+          groupName: 'BUZOVLAR',
+          userId: userIdToUse
+        }
+      })
+      calfId = calf.id
+    }
+
+    await prisma.calvingRecord.create({
+      data: {
+        animalId: newAnimal.id,
+        date: calvingDate,
+        calfGender: 'FEMALE',
+        calfId: calfId
+      }
+    })
+  }
 
   revalidatePath('/herd')
 }
@@ -121,17 +156,59 @@ export async function updateAnimal(id: string, formData: FormData, targetUserId?
   const userIdToUse = await getTargetUserId(targetUserId)
   
   const data: any = {}
+  const lastCalvingDateStr = formData.get('lastCalvingDate') as string
+  const calfTag = formData.get('calfTag') as string
+
   formData.forEach((value, key) => {
     if (key === 'birthDate') data[key] = value ? new Date(value as string) : null
-    else if (key !== 'id' && key !== 'animalId' && key !== 'targetUserId') {
+    else if (key !== 'id' && key !== 'animalId' && key !== 'targetUserId' && key !== 'lastCalvingDate' && key !== 'calfTag') {
        data[key] = value
     }
   })
 
-  await prisma.animal.update({
+  const updatedAnimal = await prisma.animal.update({
     where: { id, userId: userIdToUse },
-    data
+    data,
+    include: { calvingRecords: true }
   })
+
+  // Handle calving record update
+  if (lastCalvingDateStr) {
+    const calvingDate = new Date(lastCalvingDateStr)
+    const existingCalving = updatedAnimal.calvingRecords[0]
+
+    if (!existingCalving || new Date(existingCalving.date).getTime() !== calvingDate.getTime()) {
+      let calfId = null
+      if (calfTag) {
+        const calf = await prisma.animal.upsert({
+          where: { tagNumber_userId: { tagNumber: calfTag, userId: userIdToUse } },
+          update: { birthDate: calvingDate, motherId: id },
+          create: {
+            tagNumber: calfTag,
+            gender: 'FEMALE',
+            birthDate: calvingDate,
+            motherId: id,
+            stage: 'CALF',
+            groupName: 'BUZOVLAR',
+            userId: userIdToUse
+          }
+        })
+        calfId = calf.id
+      }
+
+      if (existingCalving) {
+        await prisma.calvingRecord.update({
+          where: { id: existingCalving.id },
+          data: { date: calvingDate, calfId }
+        })
+      } else {
+        await prisma.calvingRecord.create({
+          data: { animalId: id, date: calvingDate, calfGender: 'FEMALE', calfId }
+        })
+      }
+    }
+  }
+
   revalidatePath('/herd')
 }
 

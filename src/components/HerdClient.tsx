@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, Trash2, Edit, Activity, Bell, Calendar, Image as ImageIcon, Milk, Info, Check, X, Filter, Syringe, Users, ShieldCheck, Database, Upload, FileDown, Loader2 } from 'lucide-react';
+import { Search, Plus, Trash2, Edit, Activity, Bell, Calendar, Image as ImageIcon, Milk, Info, Check, X, Filter, Syringe, Users, ShieldCheck, Database, Upload, FileDown, Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
@@ -57,9 +57,9 @@ export default function HerdClient({
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGroup, setFilterGroup] = useState<string | null>(urlGroup);
-  const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(animals.length > 0 ? animals[0].id : null);
+  const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'repro' | 'health' | 'pedigree' | 'weight'>('repro');
+  const [activeTab, setActiveTab] = useState<'repro' | 'health' | 'pedigree' | 'weight' | 'children'>('repro');
   const [showForm, setShowForm] = useState<'none' | 'ai' | 'health' | 'vaccine' | 'mass_vaccine' | 'calving' | 'pd' | 'dry'>('none');
   const [editingRecord, setEditingRecord] = useState<any>(null);
   
@@ -68,9 +68,68 @@ export default function HerdClient({
   
   const selectedAnimal = animals.find(a => a.id === selectedAnimalId) || (animals.length > 0 ? animals[0] : null);
 
+  const filteredAnimals = animals.filter(a => {
+    const matchesSearch = a.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (a.name && a.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    let matchesGroup = !filterGroup;
+    
+    if (filterGroup) {
+      const animalGroup = getAnimalGroup(a);
+      const today = new Date();
+      
+      if (filterGroup === 'SICK') {
+        const fourteenDaysAgo = new Date();
+        fourteenDaysAgo.setDate(today.getDate() - 14);
+        matchesGroup = a.healthRecords?.some((r: any) => new Date(r.date) >= fourteenDaysAgo) || false;
+      } else if (filterGroup === 'PREGNANT') {
+        const lastAI = a.reproRecords?.find((r: any) => r.eventType === 'INSEMINATION');
+        const lastCalving = a.calvingRecords?.[0];
+        if (lastAI) {
+          const aiDate = new Date(lastAI.date);
+          const isNotCalvedAfterAI = !lastCalving || new Date(lastCalving.date) < aiDate;
+          const daysSinceAI = Math.floor((today.getTime() - aiDate.getTime()) / (1000 * 60 * 60 * 24));
+          matchesGroup = isNotCalvedAfterAI && daysSinceAI >= 30 && daysSinceAI < 285;
+        } else {
+          matchesGroup = false;
+        }
+      } else if (filterGroup === 'EMPTY') {
+        const isAdultFemale = a.gender === 'FEMALE' && (today.getTime() - new Date(a.birthDate || 0).getTime()) / (1000 * 60 * 60 * 24) > 450;
+        if (!isAdultFemale) {
+          matchesGroup = false;
+        } else {
+           const lastAI = a.reproRecords?.find((r: any) => r.eventType === 'INSEMINATION');
+           const lastCalving = a.calvingRecords?.[0];
+           if (!lastAI) matchesGroup = true;
+           else {
+             const aiDate = new Date(lastAI.date);
+             const isNotCalvedAfterAI = !lastCalving || new Date(lastCalving.date) < aiDate;
+             const daysSinceAI = Math.floor((today.getTime() - aiDate.getTime()) / (1000 * 60 * 60 * 24));
+             matchesGroup = !(isNotCalvedAfterAI && daysSinceAI >= 30 && daysSinceAI < 285);
+           }
+        }
+      } else if (filterGroup === 'MILKING') {
+        matchesGroup = ['YENİ DOĞANLAR', 'SAĞMAL 1', 'SAĞMAL 2'].includes(animalGroup);
+      } else if (filterGroup === 'DRY') {
+        matchesGroup = animalGroup === 'QURUYA ÇIXANLAR';
+      } else {
+        matchesGroup = animalGroup === filterGroup;
+      }
+    }
+    
+    return matchesSearch && matchesGroup;
+  });
+
   useEffect(() => {
     if (urlGroup) setFilterGroup(urlGroup);
   }, [urlGroup]);
+
+  // Auto-select first animal if none selected
+  useEffect(() => {
+    if (!selectedAnimalId && filteredAnimals.length > 0) {
+      setSelectedAnimalId(filteredAnimals[0].id);
+    }
+  }, [filteredAnimals, selectedAnimalId]);
 
   const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,58 +171,6 @@ export default function HerdClient({
   };
 
 
-  const filteredAnimals = animals.filter(a => {
-    const matchesSearch = a.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         (a.name && a.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    let matchesGroup = !filterGroup;
-    
-    if (filterGroup) {
-      const animalGroup = getAnimalGroup(a);
-      const today = new Date();
-      
-      if (filterGroup === 'SICK') {
-        const fourteenDaysAgo = new Date();
-        fourteenDaysAgo.setDate(today.getDate() - 14);
-        matchesGroup = a.healthRecords?.some((r: any) => new Date(r.date) >= fourteenDaysAgo) || false;
-      } else if (filterGroup === 'PREGNANT') {
-        const lastAI = a.reproRecords?.find((r: any) => r.eventType === 'INSEMINATION');
-        const lastCalving = a.calvingRecords?.[0];
-        if (lastAI) {
-          const aiDate = new Date(lastAI.date);
-          const isNotCalvedAfterAI = !lastCalving || new Date(lastCalving.date) < aiDate;
-          const daysSinceAI = Math.floor((today.getTime() - aiDate.getTime()) / (1000 * 60 * 60 * 24));
-          matchesGroup = isNotCalvedAfterAI && daysSinceAI >= 30 && daysSinceAI < 285;
-        } else {
-          matchesGroup = false;
-        }
-      } else if (filterGroup === 'EMPTY') {
-        const isAdultFemale = a.gender === 'FEMALE' && (today.getTime() - new Date(a.birthDate || 0).getTime()) / (1000 * 60 * 60 * 24) > 450;
-        if (!isAdultFemale) {
-          matchesGroup = false;
-        } else {
-          const lastAI = a.reproRecords?.find((r: any) => r.eventType === 'INSEMINATION');
-          const lastCalving = a.calvingRecords?.[0];
-          let isPregnant = false;
-          if (lastAI) {
-            const aiDate = new Date(lastAI.date);
-            const isNotCalvedAfterAI = !lastCalving || new Date(lastCalving.date) < aiDate;
-            const daysSinceAI = Math.floor((today.getTime() - aiDate.getTime()) / (1000 * 60 * 60 * 24));
-            isPregnant = isNotCalvedAfterAI && daysSinceAI >= 30 && daysSinceAI < 285;
-          }
-          matchesGroup = !isPregnant;
-        }
-      } else if (filterGroup === 'MILKING') {
-        matchesGroup = ['YENİ DOĞANLAR', 'SAĞMAL 1', 'SAĞMAL 2'].includes(animalGroup);
-      } else if (filterGroup === 'DRY') {
-        matchesGroup = animalGroup === 'QURUYA ÇIXANLAR';
-      } else {
-        matchesGroup = animalGroup === filterGroup;
-      }
-    }
-    
-    return matchesSearch && matchesGroup;
-  });
 
   const getStageColor = (group: string) => {
     switch (group) {
@@ -186,13 +193,14 @@ export default function HerdClient({
 
 
   return (
-    <div className="flex h-[calc(100vh-1rem)] gap-8 p-8 animate-in">
+    <div className="flex flex-col lg:flex-row h-screen lg:h-[calc(100vh-2rem)] gap-4 lg:gap-8 p-4 lg:p-8 animate-in overflow-hidden relative">
       
       {/* LEFT PANE: Master List */}
-      <div className="w-[420px] flex flex-col glass-panel rounded-[32px] shadow-2xl shadow-blue-500/5 overflow-hidden shrink-0 border border-white/50">
+      <div className={`w-full lg:w-[420px] flex-col glass-panel rounded-[32px] shadow-2xl shadow-blue-500/5 overflow-hidden shrink-0 border border-white/50 ${selectedAnimalId ? 'hidden lg:flex' : 'flex'}`}>
         <div className="p-6 border-b border-gray-100/50 bg-white/30 backdrop-blur-md">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-black text-gray-900 text-2xl tracking-tight">Sürü <span className="text-blue-600">Siyahısı</span></h2>
+          <div className="flex justify-between items-center mb-6 lg:mb-6">
+            <h2 className="font-black text-gray-900 text-2xl tracking-tight hidden lg:block">Sürü <span className="text-blue-600">Siyahısı</span></h2>
+            <div className="lg:hidden w-10" /> {/* Spacer for back button on mobile */}
             <div className="flex items-center gap-2">
                <label className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl cursor-pointer hover:bg-emerald-100 transition-all border border-emerald-100">
                  {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
@@ -251,7 +259,10 @@ export default function HerdClient({
             filteredAnimals.map((animal) => (
               <div 
                 key={animal.id} 
-                onClick={() => setSelectedAnimalId(animal.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedAnimalId(animal.id);
+                }}
                 className={`group p-4 rounded-3xl cursor-pointer transition-all duration-300 border relative overflow-hidden ${
                   selectedAnimalId === animal.id 
                   ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-600/20 scale-[1.02] z-10' 
@@ -293,7 +304,16 @@ export default function HerdClient({
       </div>
 
       {/* RIGHT PANE: Details */}
-      <div className="flex-1 glass-panel rounded-[40px] shadow-2xl shadow-blue-500/5 overflow-hidden border border-white/50 relative flex flex-col">
+      <div className={`flex-1 glass-panel rounded-[32px] lg:rounded-[40px] shadow-2xl shadow-blue-500/5 overflow-hidden border border-white/50 relative flex-col ${selectedAnimalId ? 'flex' : 'hidden lg:flex'}`}>
+        {/* Mobile Back Button */}
+        {selectedAnimalId && (
+          <button 
+            onClick={() => setSelectedAnimalId(null)}
+            className="lg:hidden absolute top-6 left-6 z-50 w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/30"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+        )}
         {!selectedAnimal ? (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center animate-in">
              <div className="w-24 h-24 bg-blue-50 rounded-[40px] flex items-center justify-center mb-8 relative">
@@ -319,10 +339,10 @@ export default function HerdClient({
                   </span>
                </div>
 
-               <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
+               <div className="absolute bottom-8 left-8 right-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 md:gap-0">
                  <div>
-                    <h2 className="text-6xl font-black text-white tracking-tighter mb-2">{selectedAnimal.tagNumber}</h2>
-                    <div className="flex items-center gap-4 text-blue-100 font-bold">
+                    <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-2">{selectedAnimal.tagNumber}</h2>
+                    <div className="flex flex-wrap items-center gap-3 text-blue-100 font-bold">
                        <p className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-xl backdrop-blur-sm">
                          <Info className="w-4 h-4" /> {selectedAnimal.name || 'Ad qoyulmayıb'}
                        </p>
@@ -332,9 +352,13 @@ export default function HerdClient({
                     </div>
                  </div>
                  
-                 <div className="flex gap-3 mb-1">
-                    <Link href={targetUserId ? `/herd/edit/${selectedAnimal.id}?userId=${targetUserId}` : `/herd/edit/${selectedAnimal.id}`} className="w-14 h-14 bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-blue-600 rounded-2xl border border-white/20 transition-all flex items-center justify-center group shadow-2xl">
-                       <Edit className="w-6 h-6 group-active:scale-90" />
+                 <div className="flex gap-4 mb-1">
+                    <Link 
+                      href={targetUserId ? `/herd/edit/${selectedAnimal.id}?userId=${targetUserId}` : `/herd/edit/${selectedAnimal.id}`} 
+                      className="w-16 h-16 bg-white hover:bg-blue-600 text-blue-600 hover:text-white rounded-2xl border border-white/20 transition-all flex items-center justify-center group shadow-2xl"
+                      title="Düzəliş et"
+                    >
+                       <Edit className="w-7 h-7 group-active:scale-90" />
                     </Link>
                     <form action={async () => {
                       if(confirm('Əminsiniz?')) {
@@ -342,17 +366,21 @@ export default function HerdClient({
                          setSelectedAnimalId(null);
                       }
                     }}>
-                      <button type="submit" className="w-14 h-14 bg-red-500/20 backdrop-blur-md hover:bg-red-500 text-white rounded-2xl border border-red-500/30 transition-all flex items-center justify-center group shadow-2xl">
-                         <Trash2 className="w-6 h-6 group-active:scale-90" />
+                      <button 
+                        type="submit" 
+                        className="w-16 h-16 bg-white/10 backdrop-blur-md hover:bg-red-600 text-white rounded-2xl border border-red-500/30 transition-all flex items-center justify-center group shadow-2xl"
+                        title="Sil"
+                      >
+                         <Trash2 className="w-7 h-7 group-active:scale-90" />
                       </button>
                     </form>
                  </div>
                </div>
             </div>
 
-            <div className="p-10 space-y-10">
+             <div className="p-6 lg:p-10 space-y-8 lg:space-y-10">
                {/* QUICK STATS */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
                   <div className="bg-gray-50 border border-gray-100 rounded-[32px] p-6 text-center">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Yaş</p>
                     <p className="text-xl font-black text-gray-900">{calculateAge(selectedAnimal.birthDate)}</p>
@@ -479,8 +507,8 @@ export default function HerdClient({
                      })()}
 
                      {/* HISTORY TABS */}
-                     <div className="space-y-6">
-                        <div className="flex gap-2 bg-gray-100/50 p-1.5 rounded-[24px] w-fit">
+                      <div className="space-y-4 lg:space-y-6">
+                        <div className="flex gap-2 bg-gray-100/50 p-1.5 rounded-[24px] w-fit overflow-x-auto max-w-full no-scrollbar">
                            <button 
                              onClick={() => setActiveTab('repro')}
                              className={`px-6 py-2.5 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'repro' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
@@ -505,6 +533,14 @@ export default function HerdClient({
                                className={`px-6 py-2.5 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'weight' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                              >
                                Çəki
+                             </button>
+                           )}
+                           {selectedAnimal.children && selectedAnimal.children.length > 0 && (
+                             <button 
+                               onClick={() => setActiveTab('children')}
+                               className={`px-6 py-2.5 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'children' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                             >
+                               Balalar
                              </button>
                            )}
                         </div>
@@ -560,7 +596,7 @@ export default function HerdClient({
                               <div className="space-y-8">
                                 {/* GESTATION DASHBOARD */}
                                 {selectedAnimal.gender === 'FEMALE' && (
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                                     {/* Hamiləlik Statusu */}
                                     <div className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all min-w-0">
                                       <div className={`absolute -right-2 -bottom-2 w-14 h-14 ${selectedAnimal.isPregnant ? 'text-pink-50' : 'text-gray-50'} opacity-50`}>
@@ -739,6 +775,33 @@ export default function HerdClient({
                                                              </div>
                               </div>
 
+                           )}
+
+                           {activeTab === 'children' && (
+                             <div className="space-y-6">
+                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                 {selectedAnimal.children?.map((child: any) => (
+                                   <div 
+                                     key={child.id}
+                                     onClick={() => setSelectedAnimalId(child.id)}
+                                     className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-300 transition-all cursor-pointer group"
+                                   >
+                                     <div className="flex justify-between items-start">
+                                       <div className="flex items-center gap-4">
+                                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black ${child.gender === 'MALE' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
+                                            {child.tagNumber.slice(-2)}
+                                          </div>
+                                          <div>
+                                            <p className="font-black text-gray-900">{child.tagNumber}</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{calculateAge(child.birthDate)}</p>
+                                          </div>
+                                       </div>
+                                       <span className="text-[10px] font-black bg-gray-50 px-3 py-1 rounded-full uppercase">{child.gender === 'MALE' ? 'Erkək' : 'Dişi'}</span>
+                                     </div>
+                                   </div>
+                                 ))}
+                               </div>
+                             </div>
                            )}
 
                            {activeTab === 'health' && (
@@ -940,48 +1003,7 @@ export default function HerdClient({
         </div>
       )}
 
-      {showForm === 'health' && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <form action={async (formData) => {
-            if (editingRecord && updateHealthAction) {
-              await updateHealthAction(editingRecord.id, formData, targetUserId);
-            } else if (addHealthAction) {
-              await addHealthAction(formData, targetUserId);
-            }
-            setShowForm('none');
-            setEditingRecord(null);
-          }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
-            <div className="flex justify-between items-center">
-               <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-600/20">
-                     <Activity className="w-6 h-6"/>
-                  </div>
-                  <h4 className="font-black text-gray-900 text-xl tracking-tight">{editingRecord ? 'Müalicəni Yenilə' : 'Sağlamlıq Qeydi'}</h4>
-               </div>
-               <button type="button" onClick={() => setShowForm('none')} className="w-10 h-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"><X className="w-5 h-5"/></button>
-            </div>
-            <input type="hidden" name="animalId" value={selectedAnimal?.id} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Xəstəlik / Səbəb</label>
-                <input name="disease" defaultValue={editingRecord?.disease || ''} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarix</label>
-                <input type="date" name="date" defaultValue={editingRecord ? new Date(editingRecord.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold" />
-              </div>
-              <div className="col-span-full space-y-2">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Dərmanlar və Doza</label>
-                <textarea name="medications" defaultValue={editingRecord?.medications || ''} rows={2} className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-bold"></textarea>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <button type="submit" className="flex-1 bg-red-600 text-white py-5 rounded-3xl text-sm font-black hover:bg-red-700 transition-all shadow-xl shadow-red-600/20">Yadda Saxla</button>
-              <button type="button" onClick={() => setShowForm('none')} className="px-10 py-5 bg-gray-50 text-gray-500 rounded-3xl text-sm font-black hover:bg-gray-100 transition-all border border-gray-100">Ləğv Et</button>
-            </div>
-          </form>
-        </div>
-      )}
+
       {showForm === 'health' && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
           <form action={async (formData) => {
@@ -991,7 +1013,7 @@ export default function HerdClient({
               await addHealthAction?.(formData, targetUserId);
             }
             setShowForm('none');
-          }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-2xl space-y-8 relative">
+          }} className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-2xl w-full max-w-2xl space-y-6 md:space-y-8 relative">
             <div className="flex justify-between items-center">
                <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-600/20">
@@ -1041,7 +1063,7 @@ export default function HerdClient({
       )}
 
       {showForm === 'vaccine' && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
           <form action={async (formData) => {
             if (editingRecord && updateVaccineAction) {
               await updateVaccineAction(editingRecord.id, formData, targetUserId);
@@ -1050,7 +1072,7 @@ export default function HerdClient({
             }
             setShowForm('none');
             setEditingRecord(null);
-          }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
+          }} className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-2xl w-full max-w-xl space-y-6 md:space-y-8 animate-in zoom-in-95">
             <div className="flex justify-between items-center">
                <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">

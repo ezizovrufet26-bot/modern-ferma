@@ -113,6 +113,31 @@ function EditAnimalForm({ params }: { params: Promise<{ id: string }> }) {
                 <option value="DANALAR">DANALAR</option>
               </select>
             </div>
+
+            <div className="md:col-span-2 pt-4 border-t border-gray-100">
+               <h3 className="text-lg font-bold text-gray-900 mb-4">Sonuncu Doğum Məlumatları</h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sonuncu Doğum Tarixi</label>
+                    <input 
+                      type="date" 
+                      name="lastCalvingDate" 
+                      defaultValue={animal.calvingRecords?.[0]?.date ? new Date(animal.calvingRecords[0].date).toISOString().split('T')[0] : ''}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Buzovun Bırka Nömrəsi</label>
+                    <input 
+                      type="text" 
+                      name="calfTag" 
+                      defaultValue={animal.calvingRecords?.[0]?.calf?.tagNumber || ''}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      placeholder="Məsələn: AZ-54321"
+                    />
+                  </div>
+               </div>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">

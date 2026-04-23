@@ -27,14 +27,15 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const userCount = await prisma.user.count();
+    const isFirstUser = userCount === 0;
 
     await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        isActive: true,
-        role: userCount === 0 ? 'ADMIN' : 'USER', // İlk qeydiyyatdan keçən Super Admin olsun
+        isActive: isFirstUser, // İlk istifadəçi aktiv olur, digərləri admin təsdiqi gözləyir
+        role: isFirstUser ? 'ADMIN' : 'USER',
       },
     });
 

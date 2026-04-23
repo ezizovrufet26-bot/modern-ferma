@@ -29,9 +29,9 @@ export default function Sidebar() {
       {/* Mobile Toggle Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-5 left-5 z-[100] md:hidden w-14 h-14 bg-red-600 rounded-2xl shadow-2xl shadow-red-600/30 flex items-center justify-center text-white border border-white/20 active:scale-95 transition-all"
+        className="fixed top-4 right-4 z-[100] md:hidden w-12 h-12 bg-red-600 rounded-xl shadow-xl shadow-red-600/30 flex items-center justify-center text-white border border-white/20 active:scale-95 transition-all"
       >
-        {isOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
 
       {/* Backdrop for mobile */}
