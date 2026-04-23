@@ -5,6 +5,7 @@ import {
   Droplets, 
   Calendar, 
   TrendingUp, 
+  TrendingDown,
   Plus, 
   Activity, 
   LogOut, 
@@ -19,10 +20,14 @@ import {
 } from "lucide-react";
 import { getAnimalGroup } from "@/lib/herd-utils";
 import { auth, signOut } from "@/auth";
+import { getMilkRecords } from "@/app/actions/milk";
+import { getFinanceRecords } from "@/app/actions/finance";
 
 export default async function DashboardPage() {
   const session = await auth();
   const animals = await getAnimals();
+  const milkRecords = await getMilkRecords();
+  const financeRecords = await getFinanceRecords();
 
   const isAdmin = session?.user?.role === 'ADMIN';
 
@@ -43,14 +48,15 @@ export default async function DashboardPage() {
 
   // Status Summary
   const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
   const fourteenDaysAgo = new Date();
   fourteenDaysAgo.setDate(today.getDate() - 14);
 
-  const sick = animals.filter(a => a.healthRecords.some((r: any) => new Date(r.date) >= fourteenDaysAgo)).length;
+  const sick = animals.filter(a => (a.healthRecords || []).some((r: any) => new Date(r.date) >= fourteenDaysAgo)).length;
   
   const pregnant = animals.filter(a => {
-    const lastAI = a.reproRecords.find((r: any) => r.eventType === 'INSEMINATION');
-    const lastCalving = a.calvingRecords[0];
+    const lastAI = (a.reproRecords || []).find((r: any) => r.eventType === 'INSEMINATION');
+    const lastCalving = (a.calvingRecords || [])[0];
     if (!lastAI) return false;
     const aiDate = new Date(lastAI.date);
     if (lastCalving && new Date(lastCalving.date) > aiDate) return false;
@@ -61,6 +67,22 @@ export default async function DashboardPage() {
   const milking = milking1 + milking2 + fresh;
   const adultFemales = animals.filter(a => a.gender === 'FEMALE' && (new Date().getTime() - new Date(a.birthDate || 0).getTime()) / (1000 * 60 * 60 * 24) > 450).length;
   const empty = Math.max(0, adultFemales - pregnant);
+
+  // Milk Stats
+  const todayMilk = milkRecords.filter(r => new Date(r.date).toISOString().split('T')[0] === todayStr).reduce((acc, r) => acc + r.totalYield, 0);
+  const avgMilk = milkRecords.length > 0 ? (milkRecords.reduce((acc, r) => acc + r.totalYield, 0) / milkRecords.length).toFixed(1) : 0;
+
+  // Finance Stats
+  const thisMonth = today.getMonth();
+  const thisYear = today.getFullYear();
+  const monthlyFinance = financeRecords.filter(r => {
+    const d = new Date(r.date);
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+  });
+
+  const income = monthlyFinance.filter(r => r.type === 'INCOME').reduce((acc, r) => acc + r.amount, 0);
+  const expense = monthlyFinance.filter(r => r.type === 'EXPENSE').reduce((acc, r) => acc + r.amount, 0);
+  const balance = income - expense;
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 animate-in">
@@ -247,10 +269,10 @@ export default async function DashboardPage() {
                 <Droplets className="w-48 h-48" />
               </div>
               <p className="text-blue-100 font-bold text-xs uppercase tracking-widest mb-2">Gündəlik Ortalam SGG</p>
-              <h4 className="text-5xl font-black mb-6">32.4 <span className="text-2xl opacity-70">LT</span></h4>
+              <h4 className="text-5xl font-black mb-6">{avgMilk} <span className="text-2xl opacity-70">LT</span></h4>
               <div className="flex items-center gap-3 bg-white/10 w-fit px-4 py-2 rounded-2xl backdrop-blur-md">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold">+1.2 lt artım</span>
+                <span className="text-xs font-bold">Son qeydlər üzrə</span>
               </div>
             </div>
 
@@ -258,7 +280,7 @@ export default async function DashboardPage() {
               <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 font-bold text-[10px] uppercase tracking-widest mb-1">Cəmi Süd (Bu gün)</p>
-                  <p className="text-2xl font-black text-gray-900">1,240 LT</p>
+                  <p className="text-2xl font-black text-gray-900">{todayMilk.toLocaleString()} LT</p>
                 </div>
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-100">
                   <TrendingUp className="w-6 h-6 text-emerald-500" />
@@ -287,21 +309,22 @@ export default async function DashboardPage() {
           
           <div className="space-y-8 flex-1 flex flex-col justify-center">
             <div className="text-center">
-              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Balans</p>
-              <h4 className="text-5xl font-black text-gray-900">₼ 12,450</h4>
-              <p className="text-emerald-500 font-bold text-sm mt-2 flex items-center justify-center gap-1">
-                <TrendingUp className="w-4 h-4" /> +15.4% bu ay
+              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Balans (Bu ay)</p>
+              <h4 className="text-5xl font-black text-gray-900">₼ {balance.toLocaleString()}</h4>
+              <p className={`${balance >= 0 ? 'text-emerald-500' : 'text-red-500'} font-bold text-sm mt-2 flex items-center justify-center gap-1`}>
+                {balance >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />} 
+                ₼ {Math.abs(balance).toLocaleString()} net
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 text-center">
                 <p className="text-emerald-600 font-bold text-[10px] uppercase mb-1">Gəlir</p>
-                <p className="text-lg font-black text-emerald-700">₼ 8.2k</p>
+                <p className="text-lg font-black text-emerald-700">₼ {(income/1000).toFixed(1)}k</p>
               </div>
               <div className="bg-red-50 p-6 rounded-3xl border border-red-100 text-center">
                 <p className="text-red-600 font-bold text-[10px] uppercase mb-1">Xərc</p>
-                <p className="text-lg font-black text-red-700">₼ 3.1k</p>
+                <p className="text-lg font-black text-red-700">₼ {(expense/1000).toFixed(1)}k</p>
               </div>
             </div>
           </div>

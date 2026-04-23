@@ -8,17 +8,32 @@ import StaffClient from "@/components/StaffClient";
 import MilkClient from "@/components/MilkClient";
 import { getAnimalGroup } from "@/lib/herd-utils";
 
-import { getAnimals, deleteAnimal, saveArtificialInsemination, updateArtificialInsemination, deleteArtificialInsemination, saveCalving, savePregnancyCheck, saveDryPeriod } from "@/app/actions/herd";
-import { addHealthRecord, updateHealthRecord, deleteHealthRecord, addVaccineRecord, updateVaccineRecord, deleteVaccineRecord, updateAnimalGroup, addMassVaccineRecord } from "@/app/actions/health";
+import { 
+  getAnimals, 
+  deleteAnimal, 
+  saveArtificialInsemination, 
+  updateArtificialInsemination, 
+  deleteArtificialInsemination, 
+  saveCalving, 
+  savePregnancyCheck, 
+  saveDryPeriod,
+  addHealthAction, 
+  updateHealthAction,
+  deleteHealthAction, 
+  addVaccineAction, 
+  updateVaccineAction,
+  deleteVaccineAction,
+  addMassVaccineAction 
+} from "@/app/actions/herd";
+import { updateAnimalGroup } from "@/app/actions/health";
 import { 
   getFeeds, addFeed, updateFeed, deleteFeed,
   getRations, createRation, updateRation, deleteRation,
   addFeedingRecord, updateFeedingRecord, deleteFeedingRecord, getFeedingRecords 
 } from "@/app/actions/feeding";
 import { getFinanceRecords, addFinanceRecord, deleteFinanceRecord, updateFinanceRecord } from "@/app/actions/finance";
-import { getStaff } from "@/app/actions/staff";
+import { getStaff, createStaff, deleteStaff } from "@/app/actions/staff";
 import { getMilkRecords, addMilkRecord, deleteMilkRecord, updateMilkRecord } from "@/app/actions/milk";
-import { addHealthAction, deleteHealthAction, addVaccineAction, addMassVaccineAction } from "@/app/actions/herd";
 import HealthClient from "@/components/HealthClient";
 
 import Link from "next/link";
@@ -117,13 +132,13 @@ export default async function UserDashboardView({
             saveCalvingAction={saveCalving}
             savePDAction={savePregnancyCheck}
             saveDryAction={saveDryPeriod}
-            addHealthAction={addHealthRecord}
-            updateHealthAction={updateHealthRecord}
-            deleteHealthAction={deleteHealthRecord}
-            addVaccineAction={addVaccineRecord}
-            updateVaccineAction={updateVaccineRecord}
-            deleteVaccineAction={deleteVaccineRecord}
-            addMassVaccineAction={addMassVaccineRecord}
+            addHealthAction={addHealthAction}
+            updateHealthAction={updateHealthAction}
+            deleteHealthAction={deleteHealthAction}
+            addVaccineAction={addVaccineAction}
+            updateVaccineAction={updateVaccineAction}
+            deleteVaccineAction={deleteVaccineAction}
+            addMassVaccineAction={addMassVaccineAction}
             updateGroupAction={updateAnimalGroup}
           />
         )}
@@ -176,8 +191,8 @@ export default async function UserDashboardView({
         {tab === 'staff' && (
           <StaffClient 
             initialStaff={await getStaff(userId)}
-            createAction={require('@/app/actions/staff').createStaff}
-            deleteAction={require('@/app/actions/staff').deleteStaff}
+            createAction={createStaff}
+            deleteAction={deleteStaff}
             targetUserId={userId}
           />
         )}
@@ -185,16 +200,16 @@ export default async function UserDashboardView({
         {tab === 'health_all' && (
            <HealthClient 
              animals={animals}
-             healthRecords={animals.flatMap((a: any) => a.healthRecords.map((r: any) => ({ ...r, animal: a })))}
-             vaccineRecords={animals.flatMap((a: any) => a.vaccineRecords.map((r: any) => ({ ...r, animal: a })))}
-             addHealthAction={addHealthAction}
-             updateHealthAction={require('@/app/actions/herd').updateHealthAction}
-             deleteHealthAction={deleteHealthAction}
-             addVaccineAction={addVaccineAction}
-             updateVaccineAction={require('@/app/actions/herd').updateVaccineAction}
-             deleteVaccineAction={require('@/app/actions/herd').deleteVaccineAction}
-             addMassVaccineAction={addMassVaccineAction}
-             targetUserId={userId}
+            healthRecords={animals.flatMap((a: any) => (a.healthRecords || []).map((r: any) => ({ ...r, animal: a })))}
+            vaccineRecords={animals.flatMap((a: any) => (a.vaccineRecords || []).map((r: any) => ({ ...r, animal: a })))}
+            addHealthAction={addHealthAction}
+            updateHealthAction={updateHealthAction}
+            deleteHealthAction={deleteHealthAction}
+            addVaccineAction={addVaccineAction}
+            updateVaccineAction={updateVaccineAction}
+            deleteVaccineAction={deleteVaccineAction}
+            addMassVaccineAction={addMassVaccineAction}
+            targetUserId={userId}
            />
         )}
       </main>

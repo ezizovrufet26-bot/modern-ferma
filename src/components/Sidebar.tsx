@@ -84,8 +84,7 @@ export default function Sidebar() {
             Çıxış Et
           </button>
 
-          </div>
-          <div className="mt-6 pt-6 border-t border-white/5 text-[10px] text-gray-500 font-medium">
+          <div className="mt-6 pt-6 border-t border-white/5 text-[10px] text-gray-500 font-medium text-center">
             &copy; 2026 Antigravity AI
           </div>
         </div>
