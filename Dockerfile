@@ -2,23 +2,28 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package.json package-lock.json ./
 
-# Install ALL dependencies (including devDependencies for Tailwind)
+# Install ALL dependencies (dev included for Tailwind CSS)
 RUN npm ci
 
-# Copy all source files
+# Copy source files (excluding .next, node_modules via .dockerignore)
 COPY . .
 
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build Next.js
-RUN npm run build
+# Build Next.js with explicit webpack (NOT turbopack)
+RUN npx next build
 
-# Railway sets PORT automatically, default to 3000
+# Verify .next/static exists and has CSS
+RUN ls -la .next/static/css/ || echo "NO CSS FILES FOUND"
+RUN ls -la .next/static/ || echo "NO STATIC DIR"
+
+# Railway sets PORT via env var
 ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV="production"
 
-# Start: push DB schema first, then start Next.js on Railway's PORT
-CMD ["sh", "-c", "npx prisma db push && npx next start -p ${PORT:-3000}"]
+# Start: push DB schema, then start Next.js
+CMD ["sh", "-c", "npx prisma db push && npx next start -H 0.0.0.0 -p ${PORT:-3000}"]
