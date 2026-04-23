@@ -392,20 +392,26 @@ export async function importAnimalsFromData(data: any[], targetUserId?: string) 
   let count = 0
 
   for (const item of data) {
-    const tagNumber = String(item['Bırka'] || item['Tag'] || item['Tag Number'] || item['tagNumber'] || '').trim()
+    const tagNumber = String(item['Bırka'] || item['Tag'] || item['Tag Number'] || item['tagNumber'] || item['ID'] || item['No'] || '').trim()
     if (!tagNumber) continue
 
-    const name = item['Ad'] || item['Name'] || item['name']
-    const breed = item['Cins'] || item['Breed'] || item['breed']
-    const genderRaw = String(item['Cinsiyyət'] || item['Gender'] || item['gender'] || 'FEMALE').toUpperCase()
-    const gender = (genderRaw === 'ERKƏK' || genderRaw === 'MALE') ? 'MALE' : 'FEMALE'
-    const birthDateValue = item['Doğum Tarixi'] || item['Doğum'] || item['Birth Date'] || item['birthDate']
+    const name = item['Ad'] || item['Name'] || item['name'] || item['Ləqəb']
+    const breed = item['Cins'] || item['Breed'] || item['breed'] || item['Növ']
+    const genderRaw = String(item['Cinsiyyət'] || item['Gender'] || item['gender'] || item['Cinsiyyet'] || 'FEMALE').toUpperCase()
+    const gender = (genderRaw === 'ERKƏK' || genderRaw === 'MALE' || genderRaw === 'ERKEK') ? 'MALE' : 'FEMALE'
+    const birthDateValue = item['Doğum Tarixi'] || item['Doğum'] || item['Birth Date'] || item['birthDate'] || item['Dogum']
     const groupName = item['Qrup'] || item['Group'] || item['groupName'] || 'SAĞMAL 1'
 
     let birthDate = null
     if (birthDateValue) {
-      const d = new Date(birthDateValue)
-      if (!isNaN(d.getTime())) birthDate = d
+      // Excel serial date check
+      if (typeof birthDateValue === 'number') {
+        const d = new Date((birthDateValue - 25569) * 86400 * 1000)
+        if (!isNaN(d.getTime())) birthDate = d
+      } else {
+        const d = new Date(birthDateValue)
+        if (!isNaN(d.getTime())) birthDate = d
+      }
     }
 
     await prisma.animal.upsert({

@@ -138,34 +138,42 @@ export default function HerdClient({
     setIsImporting(true);
     try {
       const reader = new FileReader();
+      reader.onerror = () => {
+        alert("Fayl oxunarkən xəta baş verdi.");
+        setIsImporting(false);
+      };
       reader.onload = async (evt) => {
         try {
           const bstr = evt.target?.result;
-          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
           const wsname = wb.SheetNames[0];
           const ws = wb.Sheets[wsname];
           const data = XLSX.utils.sheet_to_json(ws);
+
+          console.log("Excel data parsed:", data);
 
           if (data.length > 0) {
             const res = await importAnimalsFromData(data, targetUserId || undefined);
             if (res.success) {
               alert(`${res.importedCount} heyvan uğurla əlavə edildi/yeniləndi.`);
               window.location.reload(); 
+            } else {
+              alert("Server tərəfində xəta baş verdi.");
             }
           } else {
-            alert("Excel faylında məlumat tapılmadı.");
+            alert("Excel faylında məlumat tapılmadı. Sütun başlıqlarını yoxlayın.");
           }
         } catch (err) {
-          console.error(err);
-          alert("Fayl emal edilərkən xəta baş verdi.");
+          console.error("Import error details:", err);
+          alert("Fayl emal edilərkən xəta baş verdi: " + (err instanceof Error ? err.message : "Bilinməyən xəta"));
         } finally {
            setIsImporting(false);
         }
       };
       reader.readAsBinaryString(file);
     } catch (err) {
-      console.error(err);
-      alert("Excel faylı oxunarkən xəta baş verdi.");
+      console.error("FileReader setup error:", err);
+      alert("Fayl oxuyucusu başlatıla bilmədi.");
       setIsImporting(false);
     }
   };
