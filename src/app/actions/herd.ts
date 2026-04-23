@@ -530,6 +530,7 @@ export async function addVaccineAction(formData: FormData, targetUserId?: string
   const animalId = formData.get('animalId') as string;
   const vaccineName = formData.get('vaccineName') as string;
   const dateStr = formData.get('date') as string;
+  const nextDueDateStr = formData.get('nextDueDate') as string;
   const dose = formData.get('dose') as string;
   const notes = formData.get('notes') as string;
 
@@ -538,6 +539,7 @@ export async function addVaccineAction(formData: FormData, targetUserId?: string
       animalId,
       vaccineName,
       date: new Date(dateStr),
+      nextDueDate: nextDueDateStr ? new Date(nextDueDateStr) : null,
       dose,
       notes
     }
@@ -579,14 +581,16 @@ export async function updateVaccineAction(id: string, formData: FormData, target
   const userIdToUse = await getTargetUserId(targetUserId)
   const vaccineName = formData.get('vaccineName') as string;
   const dateStr = formData.get('date') as string;
+  const nextDueDateStr = formData.get('nextDueDate') as string;
   const dose = formData.get('dose') as string;
   const notes = formData.get('notes') as string;
 
   await prisma.vaccineRecord.update({
-    where: { id, animal: { userId: userIdToUse } },
+    where: { id },
     data: {
       vaccineName,
       date: new Date(dateStr),
+      nextDueDate: nextDueDateStr ? new Date(nextDueDateStr) : null,
       dose,
       notes
     }

@@ -326,10 +326,14 @@ export default function HealthClient({
                 <label className="text-[10px] font-black uppercase text-gray-400">Vaksin Adı</label>
                 <input name="vaccineName" defaultValue={editingRecord?.vaccineName} required className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black"/>
               </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-gray-400">Tarix</label>
-                <input type="date" name="date" defaultValue={new Date(editingRecord?.date).toISOString().split('T')[0]} required className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black"/>
-              </div>
+               <div className="space-y-3">
+                 <label className="text-[10px] font-black uppercase text-gray-400">Tarix</label>
+                 <input type="date" name="date" defaultValue={new Date(editingRecord?.date).toISOString().split('T')[0]} required className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black"/>
+               </div>
+               <div className="space-y-3">
+                 <label className="text-[10px] font-black uppercase text-gray-400">Növbəti Tarix</label>
+                 <input type="date" name="nextDueDate" defaultValue={editingRecord?.nextDueDate ? new Date(editingRecord.nextDueDate).toISOString().split('T')[0] : ''} className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black"/>
+               </div>
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase text-gray-400">Dozaj</label>
                 <input name="dose" defaultValue={editingRecord?.dose || '2ml'} className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black"/>

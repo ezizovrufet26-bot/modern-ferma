@@ -1101,6 +1101,10 @@ export default function HerdClient({
                 <input type="date" name="date" defaultValue={editingRecord ? new Date(editingRecord.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} required className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold" />
               </div>
               <div className="space-y-2">
+                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Növbəti Tarix</label>
+                 <input type="date" name="nextDueDate" defaultValue={editingRecord?.nextDueDate ? new Date(editingRecord.nextDueDate).toISOString().split('T')[0] : ''} className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold" />
+              </div>
+              <div className="space-y-2">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Dozaj</label>
                 <input name="dose" defaultValue={editingRecord?.dose || '2ml'} className="w-full text-sm px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold" />
               </div>
