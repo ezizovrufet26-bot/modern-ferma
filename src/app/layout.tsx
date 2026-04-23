@@ -38,7 +38,6 @@ export default function RootLayout({
         <Sidebar />
         <main className="flex-1 h-screen overflow-y-auto flex flex-col">
           <MobileHeader />
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[8px] text-gray-400 opacity-30 pointer-events-none z-50">v1.2.0-FINAL</div>
           <div className="flex-1">
             {children}
           </div>
