@@ -11,17 +11,14 @@ RUN npm ci
 # Copy all source files
 COPY . .
 
-# Generate Prisma client (does not need DATABASE_URL)
+# Generate Prisma client
 RUN npx prisma generate
 
-# Build Next.js (Tailwind CSS compiles here)
+# Build Next.js
 RUN npm run build
 
-# Expose port
-EXPOSE 3000
-
-ENV PORT=3000
+# Railway sets PORT automatically, default to 3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start: push DB schema first, then start Next.js
-CMD ["sh", "-c", "npx prisma db push && npm run start"]
+# Start: push DB schema first, then start Next.js on Railway's PORT
+CMD ["sh", "-c", "npx prisma db push && npx next start -p ${PORT:-3000}"]
