@@ -25,5 +25,8 @@ RUN ls -la .next/static/ || echo "NO STATIC DIR"
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV="production"
 
-# Start: push DB schema, then start Next.js
-CMD ["sh", "-c", "npx prisma db push && npx next start -H 0.0.0.0 -p ${PORT:-3000}"]
+# Make start.sh executable
+RUN chmod +x start.sh
+
+# Start using the script
+CMD ["./start.sh"]
