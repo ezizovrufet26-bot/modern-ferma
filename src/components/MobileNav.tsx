@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Home, Database, Droplets, Wheat, Menu, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useI18n } from '@/lib/i18n';
 
 export default function MobileNav() {
   const pathname = usePathname();
@@ -35,12 +36,14 @@ export default function MobileNav() {
     }
   };
 
+  const { t } = useI18n();
+
   const navItems = [
-    { name: 'Ana Səhifə', href: '/', icon: Home },
-    { name: 'Sürü', href: '/herd', icon: Database },
-    { name: 'Süd', href: '/milk', icon: Droplets },
-    { name: 'Yem', href: '/feeding', icon: Wheat },
-    { name: 'Daha Çox', href: '/settings', icon: Menu },
+    { name: t.dashboard, href: '/', icon: Home },
+    { name: t.herd, href: '/herd', icon: Database },
+    { name: t.milk, href: '/milk', icon: Droplets },
+    { name: t.feeding, href: '/feeding', icon: Wheat },
+    { name: t.more, href: '/settings', icon: Menu },
   ];
 
   return (

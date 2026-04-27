@@ -5,22 +5,24 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Home, List, Stethoscope, Droplets, Wallet, Settings, LayoutDashboard, Database, Syringe, Banknote, ShieldCheck, Wheat, Menu, X, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useI18n } from '@/lib/i18n';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   // Hide sidebar on auth pages
   if (pathname === '/login' || pathname === '/register') return null;
 
   const navItems = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Sürü İdarəetmə", href: "/herd", icon: Database },
-    { name: "Süd Verimi", href: "/milk", icon: Droplets },
-    { name: "Yemləmə", href: "/feeding", icon: Wheat },
-    { name: "Sağlamlıq", href: "/health", icon: Syringe },
-    { name: "Maliyyə", href: "/finance", icon: Banknote },
-    { name: "Heyət", href: "/staff", icon: List },
-    { name: "Ayarlar", href: "/settings", icon: Settings },
+    { name: t.dashboard, href: "/", icon: LayoutDashboard },
+    { name: t.herdManagement, href: "/herd", icon: Database },
+    { name: t.milk, href: "/milk", icon: Droplets },
+    { name: t.feeding, href: "/feeding", icon: Wheat },
+    { name: t.health, href: "/health", icon: Syringe },
+    { name: t.finance, href: "/finance", icon: Banknote },
+    { name: t.staff, href: "/staff", icon: List },
+    { name: t.settings, href: "/settings", icon: Settings },
   ];
 
   return (
@@ -63,7 +65,7 @@ export default function Sidebar() {
             className="w-full flex items-center gap-3 px-5 py-4 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all duration-300 font-black text-xs uppercase tracking-widest border border-red-500/20"
           >
             <LogOut className="w-5 h-5" />
-            Çıxış Et
+            {t.logout}
           </button>
 
           <div className="mt-6 pt-6 border-t border-white/5 text-[10px] text-gray-500 font-medium text-center">

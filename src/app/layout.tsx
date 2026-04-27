@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 import MobileNav from "@/components/MobileNav";
+import { I18nProvider } from "@/lib/i18n";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,6 +37,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/app_icon.png" />
       </head>
       <body className={`${inter.className} bg-gray-50 text-gray-900 flex flex-col md:flex-row`} suppressHydrationWarning>
+        <I18nProvider>
         <Sidebar />
         <main className="flex-1 h-screen overflow-y-auto flex flex-col pb-24 md:pb-0">
           <MobileHeader />
@@ -44,6 +46,7 @@ export default function RootLayout({
           </div>
           <MobileNav />
         </main>
+        </I18nProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
