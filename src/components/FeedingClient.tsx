@@ -15,6 +15,7 @@ import {
   Edit2,
   X
 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 export default function FeedingClient({
   initialFeeds,
@@ -53,6 +54,7 @@ export default function FeedingClient({
   initialHistory?: any[],
   groupCounts?: Record<string, number>
 }) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('inventory');
   const [feeds, setFeeds] = useState<any[]>(initialFeeds);
   const [rations, setRations] = useState<any[]>(initialRations);
@@ -169,7 +171,7 @@ export default function FeedingClient({
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-            <Wheat className="w-10 h-10 text-amber-500" /> Yem <span className="text-amber-600">İdarəetməsi</span>
+            <Wheat className="w-10 h-10 text-amber-500" /> {t.feedManagement}
           </h1>
           <p className="text-gray-500 mt-2 font-medium">Stoklar, rasionlar və gündəlik yemləmə qeydləri.</p>
         </div>
@@ -179,7 +181,7 @@ export default function FeedingClient({
             onClick={() => { setActiveTab('inventory'); setEditingItem(null); }}
             className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === 'inventory' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            Ambar
+            {t.feedType}
           </button>
           <button 
             onClick={() => { setActiveTab('rations'); setEditingItem(null); }}
@@ -191,7 +193,7 @@ export default function FeedingClient({
             onClick={() => { setActiveTab('feeding'); setEditingItem(null); }}
             className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === 'feeding' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            Yemləmə
+            {t.feeding}
           </button>
         </div>
       </header>
@@ -203,7 +205,7 @@ export default function FeedingClient({
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black flex items-center gap-2">
                   {editingItem ? <Edit2 className="w-5 h-5 text-blue-500" /> : <Plus className="w-5 h-5 text-amber-500" />}
-                  {editingItem ? 'Yemi Yenilə' : 'Yeni Yem Əlavə Et'}
+                  {editingItem ? t.edit : t.add}
                 </h3>
                 {editingItem && <button onClick={() => { setEditingItem(null); setNewFeed({ name: '', unit: 'kg', costPerUnit: 0, stock: 0 }); }}><X className="w-5 h-5 text-gray-400" /></button>}
               </div>
@@ -231,7 +233,7 @@ export default function FeedingClient({
                   <input type="number" value={newFeed.stock} onChange={e => setNewFeed({...newFeed, stock: parseFloat(e.target.value)})} className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-amber-500/20 outline-none" required />
                 </div>
                 <button type="submit" className={`w-full ${editingItem ? 'bg-blue-600' : 'bg-amber-500'} text-white py-4 rounded-2xl font-black text-sm shadow-lg transition-all`}>
-                  {editingItem ? 'Dəyişiklikləri Saxla' : 'Anbara Əlavə Et'}
+                  {editingItem ? t.save : t.add}
                 </button>
               </form>
             </div>
@@ -285,13 +287,13 @@ export default function FeedingClient({
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-amber-500" />
-                  {editingItem ? 'Qeydi Düzəlt' : 'Yemləməni Qeyd Et'}
+                  {editingItem ? t.edit : t.addRecord}
                 </h3>
                 {editingItem && <button onClick={() => { setEditingItem(null); setFeedingData({ groupName: 'SAĞMAL 1', animalCount: groupCounts?.['SAĞMAL 1'] || 0, rationId: '', frequency: 3, completedMeals: 1 }); }}><X className="w-5 h-5 text-gray-400" /></button>}
               </div>
               <form onSubmit={handleFeeding} className="space-y-6">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Qrup</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.group}</label>
                    <select 
                      value={feedingData.groupName} 
                      onChange={e => {
@@ -355,7 +357,7 @@ export default function FeedingClient({
                     </div>
                   </div>
                 <button type="submit" className={`w-full ${editingItem ? 'bg-blue-600' : 'bg-green-600'} text-white py-5 rounded-[24px] font-black text-sm shadow-xl transition-all`}>
-                  {editingItem ? 'Düzəlişi Saxla' : 'Yemləməni Tamamla'}
+                  {editingItem ? t.save : t.save}
                 </button>
               </form>
             </div>
@@ -371,7 +373,7 @@ export default function FeedingClient({
                   <div key={feed.id} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm relative group">
                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => startEditFeed(feed)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={async () => { if(confirm('Silmək istəyirsiniz?')) { await deleteFeedAction(feed.id, targetFarmId); refreshData(); } }} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={async () => { if(confirm(t.deleteConfirm)) { await deleteFeedAction(feed.id, targetFarmId); refreshData(); } }} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-4"><Scale className="w-6 h-6 text-amber-500" /></div>
                     <h4 className="text-xl font-black text-gray-900">{feed.name}</h4>
@@ -393,7 +395,7 @@ export default function FeedingClient({
                   <div key={ration.id} className="bg-white rounded-[28px] p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 group relative">
                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => startEditRation(ration)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={async () => { if(confirm('Silmək istəyirsiniz?')) { await deleteRationAction(ration.id, targetFarmId); refreshData(); } }} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={async () => { if(confirm(t.deleteConfirm)) { await deleteRationAction(ration.id, targetFarmId); refreshData(); } }} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="flex-1">
                       <h4 className="text-2xl font-black text-gray-900 mb-2">{ration.name}</h4>
@@ -429,7 +431,7 @@ export default function FeedingClient({
                      <div key={feeding.id} className="bg-white rounded-[32px] p-8 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center group relative hover:border-amber-300 transition-all gap-6 shadow-sm hover:shadow-xl">
                        <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                          <button onClick={() => { startEditFeeding(feeding); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"><Edit2 className="w-4 h-4" /></button>
-                         <button onClick={async () => { if(confirm('Silsin?')) { await deleteFeedingRecordAction(feeding.id, targetFarmId); refreshData(); } }} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"><Trash2 className="w-4 h-4" /></button>
+                         <button onClick={async () => { if(confirm(t.deleteConfirm)) { await deleteFeedingRecordAction(feeding.id, targetFarmId); refreshData(); } }} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"><Trash2 className="w-4 h-4" /></button>
                        </div>
                        
                        <div className="flex items-center gap-6">
@@ -470,8 +472,8 @@ export default function FeedingClient({
                             </p>
                          </div>
                          <div className="text-center md:text-left">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Cəmi Heyvan</p>
-                            <p className="text-sm font-black text-gray-900">{feeding.animalCount} baş</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t.total}</p>
+                            <p className="text-sm font-black text-gray-900">{feeding.animalCount} {t.head}</p>
                          </div>
                        </div>
 
@@ -485,7 +487,7 @@ export default function FeedingClient({
                  {history.length === 0 && (
                    <div className="py-20 text-center border-2 border-dashed border-gray-100 rounded-[32px]">
                      <History className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-                     <p className="text-gray-400 font-bold italic">Hələ heç bir yemləmə tarixçəsi yoxdur.</p>
+                     <p className="text-gray-400 font-bold italic">{t.noRecords}</p>
                    </div>
                  )}
                </div>

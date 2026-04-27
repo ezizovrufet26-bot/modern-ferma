@@ -10,6 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell, PieChart as RePieChart, Pie, Legend
 } from 'recharts';
+import { useI18n } from '@/lib/i18n';
 
 type FinanceRecord = {
   id: string;
@@ -35,6 +36,7 @@ export default function FinanceClient({
   targetFarmId?: string,
   staffList?: any[]
 }) {
+  const { t } = useI18n();
   const [records, setRecords] = useState(initialRecords);
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -49,7 +51,7 @@ export default function FinanceClient({
   };
 
   const handleDelete = async (id: string) => {
-    if(confirm('Silsin?')) {
+    if(confirm(t.deleteConfirm)) {
       await deleteAction(id, targetFarmId);
     }
   };
@@ -117,7 +119,7 @@ export default function FinanceClient({
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-            Maliyyə <span className="text-blue-600">İdarəetməsi</span>
+            {t.financeManagement}
           </h1>
           <p className="text-gray-500 mt-2 font-medium flex items-center gap-2">
             <Receipt className="w-4 h-4" /> Gəlir və xərclərin real-vaxt analitikası
@@ -127,7 +129,7 @@ export default function FinanceClient({
           onClick={() => { setEditingRecord(null); setShowModal(true); }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black transition-all shadow-xl shadow-blue-600/20 flex items-center gap-2 transform hover:scale-105 active:scale-95"
         >
-          <Plus className="w-5 h-5" /> Yeni Əməliyyat
+          <Plus className="w-5 h-5" /> {t.addRecord}
         </button>
       </header>
 
@@ -137,7 +139,7 @@ export default function FinanceClient({
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
             <TrendingUp className="w-24 h-24 text-emerald-500" />
           </div>
-          <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">Ümumi Gəlir</p>
+          <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.income}</p>
           <h3 className="text-4xl font-black text-gray-900 tracking-tighter">₼ {totalIncome.toLocaleString()}</h3>
           <div className="mt-6 flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 w-fit px-4 py-1.5 rounded-full border border-emerald-100">
              <ArrowUpRight className="w-3 h-3" /> Gəlir artımı stabildir
@@ -148,7 +150,7 @@ export default function FinanceClient({
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
             <TrendingDown className="w-24 h-24 text-red-500" />
           </div>
-          <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">Ümumi Xərc</p>
+          <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.expense}</p>
           <h3 className="text-4xl font-black text-gray-900 tracking-tighter">₼ {totalExpense.toLocaleString()}</h3>
           <div className="mt-6 flex items-center gap-2 text-red-600 font-bold text-xs bg-red-50 w-fit px-4 py-1.5 rounded-full border border-red-100">
              <ArrowDownLeft className="w-3 h-3" /> Aylıq xərclər
@@ -159,7 +161,7 @@ export default function FinanceClient({
           <div className="absolute top-0 right-0 p-6 opacity-20">
             <Wallet className="w-24 h-24 text-white" />
           </div>
-          <p className="text-blue-200 font-black text-[10px] uppercase tracking-[0.2em] mb-2">Cari Balans</p>
+          <p className="text-blue-200 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.balance}</p>
           <h3 className="text-4xl font-black tracking-tighter">₼ {balance.toLocaleString()}</h3>
           <div className="mt-6 flex items-center gap-2 text-blue-100 font-bold text-xs bg-white/10 backdrop-blur-md w-fit px-4 py-1.5 rounded-full border border-white/10">
              Net Mənfəət
@@ -232,19 +234,19 @@ export default function FinanceClient({
                  onClick={() => setFilterType(null)}
                  className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!filterType ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                >
-                 Hamısı
+                 {t.all}
                </button>
                <button 
                  onClick={() => setFilterType('INCOME')}
                  className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filterType === 'INCOME' ? 'bg-white text-emerald-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                >
-                 Gəlirlər
+                 {t.income}
                </button>
                <button 
                  onClick={() => setFilterType('EXPENSE')}
                  className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filterType === 'EXPENSE' ? 'bg-white text-red-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                >
-                 Xərclər
+                 {t.expense}
                </button>
             </div>
          </div>
@@ -254,11 +256,11 @@ export default function FinanceClient({
                <table className="w-full text-left border-separate border-spacing-y-3">
                   <thead>
                     <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                       <th className="px-8 py-4">Tarix</th>
-                       <th className="px-8 py-4">Kateqoriya</th>
-                       <th className="px-8 py-4">Açıqlama</th>
-                       <th className="px-8 py-4 text-right">Məbləğ</th>
-                       <th className="px-8 py-4 text-center">İdarəetmə</th>
+                       <th className="px-8 py-4">{t.date}</th>
+                       <th className="px-8 py-4">{t.category}</th>
+                       <th className="px-8 py-4">{t.description}</th>
+                       <th className="px-8 py-4 text-right">{t.amount}</th>
+                       <th className="px-8 py-4 text-center">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -317,7 +319,7 @@ export default function FinanceClient({
                             <div className="w-20 h-20 bg-gray-100 rounded-[32px] flex items-center justify-center mx-auto mb-6 text-gray-300">
                                <Receipt className="w-10 h-10" />
                             </div>
-                            <p className="text-gray-400 font-black text-lg">Məlumat yoxdur</p>
+                            <p className="text-gray-400 font-black text-lg">{t.noData}</p>
                          </td>
                       </tr>
                     )}
@@ -344,7 +346,7 @@ export default function FinanceClient({
                      <Plus className="w-7 h-7"/>
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 text-2xl tracking-tight">{editingRecord ? 'Düzəliş Et' : 'Yeni Əməliyyat'}</h4>
+                    <h4 className="font-black text-gray-900 text-2xl tracking-tight">{editingRecord ? t.edit : t.addRecord}</h4>
                     <p className="text-gray-500 text-sm font-bold">Maliyyə hərəkətini qeyd edin.</p>
                   </div>
                </div>
@@ -355,14 +357,14 @@ export default function FinanceClient({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Növ</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.type}</label>
                 <select name="type" defaultValue={editingRecord?.type || 'EXPENSE'} className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black appearance-none">
-                  <option value="INCOME">Gəlir (+)</option>
-                  <option value="EXPENSE">Xərc (-)</option>
+                  <option value="INCOME">{t.income} (+)</option>
+                  <option value="EXPENSE">{t.expense} (-)</option>
                 </select>
               </div>
               <div className="space-y-3">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Kateqoriya</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.category}</label>
                 <select 
                   name="category" 
                   defaultValue={editingRecord?.category || 'OTHER'} 
@@ -414,25 +416,25 @@ export default function FinanceClient({
                 </div>
               )}
               <div className="space-y-3">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Məbləğ (AZN)</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.amount} (AZN)</label>
                 <div className="relative">
                    <DollarSign className="w-5 h-5 absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" />
                    <input type="number" step="0.01" name="amount" defaultValue={editingRecord?.amount || ''} required className="w-full pl-14 pr-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-lg" placeholder="0.00" />
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarix</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.date}</label>
                 <input type="date" name="date" defaultValue={editingRecord ? new Date(editingRecord.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} required className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black" />
               </div>
               <div className="col-span-full space-y-3">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Açıqlama</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.description}</label>
                 <textarea name="description" defaultValue={editingRecord?.description || ''} rows={2} className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold placeholder:font-medium" placeholder="Əlavə qeydlər..."></textarea>
               </div>
             </div>
 
             <div className="flex gap-6 pt-4">
-              <button type="submit" className="flex-1 bg-blue-600 text-white py-6 rounded-[32px] text-lg font-black hover:bg-blue-700 transition-all shadow-2xl shadow-blue-600/30">Yadda Saxla</button>
-              <button type="button" onClick={() => setShowModal(false)} className="px-12 py-6 bg-gray-50 text-gray-500 rounded-[32px] text-lg font-black hover:bg-gray-100 transition-all border border-gray-100">Ləğv Et</button>
+              <button type="submit" className="flex-1 bg-blue-600 text-white py-6 rounded-[32px] text-lg font-black hover:bg-blue-700 transition-all shadow-2xl shadow-blue-600/30">{t.save}</button>
+              <button type="button" onClick={() => setShowModal(false)} className="px-12 py-6 bg-gray-50 text-gray-500 rounded-[32px] text-lg font-black hover:bg-gray-100 transition-all border border-gray-100">{t.cancel}</button>
             </div>
           </form>
         </div>

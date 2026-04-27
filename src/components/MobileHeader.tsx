@@ -2,23 +2,25 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 export default function MobileHeader() {
   const router = useRouter()
   const pathname = usePathname()
+  const { t } = useI18n()
 
   // Don't show on dashboard or login/register
   if (pathname === '/' || pathname === '/login' || pathname === '/register') return null
 
   const getTitle = () => {
-    if (pathname.includes('/herd')) return 'Sürü İdarəetmə'
-    if (pathname.includes('/milk')) return 'Süd Verimi'
-    if (pathname.includes('/feeding')) return 'Yemləmə'
-    if (pathname.includes('/health')) return 'Sağlamlıq'
-    if (pathname.includes('/finance')) return 'Maliyyə'
-    if (pathname.includes('/staff')) return 'Heyət'
-    if (pathname.includes('/settings')) return 'Ayarlar'
-    return 'Geri Qayıt'
+    if (pathname.includes('/herd')) return t.herdManagement
+    if (pathname.includes('/milk')) return t.milkYield || t.milk
+    if (pathname.includes('/feeding')) return t.feeding
+    if (pathname.includes('/health')) return t.health
+    if (pathname.includes('/finance')) return t.finance
+    if (pathname.includes('/staff')) return t.staff
+    if (pathname.includes('/settings')) return t.settings
+    return t.back
   }
 
   return (
