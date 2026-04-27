@@ -4,34 +4,18 @@ import prisma from '@/lib/prisma'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 
-async function getSession() {
-  const session = await auth()
-  if (!session?.user?.id) {
-    throw new Error("Daxil olmayıbsınız")
-  }
-  return session
-}
+import { getFarmId } from '@/lib/auth-utils'
 
-// UNIVERSAL USER ID RESOLVER
-async function getTargetUserId(targetUserId?: string) {
-  const session = await auth()
-  if (!session?.user?.id) {
-    throw new Error("Daxil olmayıbsınız")
-  }
-  if (targetUserId && session.user.role === 'ADMIN') return targetUserId
-  return session.user.id
-}
-
-export async function getFinanceRecords(targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function getFinanceRecords(targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   return await prisma.financeRecord.findMany({
-    where: { userId: userIdToUse },
+    where: { farmId: farmIdToUse },
     orderBy: { date: 'desc' }
   })
 }
 
-export async function addFinanceRecord(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addFinanceRecord(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   const type = formData.get('type') as string
   const category = formData.get('category') as string
@@ -46,27 +30,27 @@ export async function addFinanceRecord(formData: FormData, targetUserId?: string
       amount,
       date,
       description: description || null,
-      userId: userIdToUse
+      farmId: farmIdToUse
     }
   })
 
   revalidatePath('/finance')
 }
 
-export async function deleteFinanceRecord(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function deleteFinanceRecord(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   await prisma.financeRecord.delete({
     where: { 
       id,
-      userId: userIdToUse 
+      farmId: farmIdToUse 
     }
   })
   revalidatePath('/finance')
 }
 
-export async function updateFinanceRecord(id: string, formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateFinanceRecord(id: string, formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   const type = formData.get('type') as string
   const category = formData.get('category') as string
@@ -77,7 +61,7 @@ export async function updateFinanceRecord(id: string, formData: FormData, target
   await prisma.financeRecord.update({
     where: { 
       id,
-      userId: userIdToUse 
+      farmId: farmIdToUse 
     },
     data: {
       type,

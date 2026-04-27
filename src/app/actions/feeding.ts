@@ -5,18 +5,13 @@ import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 
 // UNIVERSAL USER ID RESOLVER
-async function getTargetUserId(targetUserId?: string) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error("Daxil olmayıbsınız")
-  if (targetUserId && session.user.role === 'ADMIN') return targetUserId
-  return session.user.id
-}
+import { getFarmId } from '@/lib/auth-utils'
 
 // FEED ITEMS
-export async function getFeeds(targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function getFeeds(targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   return await prisma.feedItem.findMany({
-    where: { userId: userIdToUse },
+    where: { farmId: farmIdToUse },
     orderBy: { name: 'asc' }
   })
 }
@@ -30,32 +25,39 @@ function countSetBits(n: number) {
   return count;
 }
 
-export async function addFeed(data: { name: string, unit: string, costPerUnit: number, stock: number }, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addFeed(data: { name: string, unit: string, costPerUnit: number, stock: number, minStock?: number }, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const feed = await prisma.feedItem.create({
-    data: { ...data, userId: userIdToUse }
+    data: { 
+      name: data.name,
+      unit: data.unit,
+      costPerUnit: data.costPerUnit,
+      stock: data.stock,
+      minStock: data.minStock || 50,
+      farmId: farmIdToUse 
+    }
   })
   revalidatePath('/feeding')
   return feed
 }
 
 // RATIONS
-export async function getRations(targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function getRations(targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   return await prisma.ration.findMany({
-    where: { userId: userIdToUse },
+    where: { farmId: farmIdToUse },
     include: { items: { include: { feedItem: true } } },
     orderBy: { createdAt: 'desc' }
   })
 }
 
-export async function createRation(name: string, description: string, items: { feedItemId: string, amount: number }[], targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function createRation(name: string, description: string, items: { feedItemId: string, amount: number }[], targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const ration = await prisma.ration.create({
     data: {
       name,
       description,
-      userId: userIdToUse,
+      farmId: farmIdToUse,
       items: {
         create: items.map(item => ({
           feedItemId: item.feedItemId,
@@ -75,8 +77,8 @@ export async function addFeedingRecord(data: {
   rationId: string,
   frequency?: number,
   completedMeals?: number
-}, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+}, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const frequency = data.frequency !== undefined ? data.frequency : 3
   const completedMeals = data.completedMeals !== undefined ? data.completedMeals : frequency
   
@@ -97,7 +99,7 @@ export async function addFeedingRecord(data: {
       animalCount: data.animalCount,
       rationId: data.rationId,
       totalCost: actualCost,
-      userId: userIdToUse
+      farmId: farmIdToUse
     }
   })
 
@@ -113,7 +115,7 @@ export async function addFeedingRecord(data: {
       amount: actualCost,
       description: `${data.groupName} qrupunun yemlənməsi (${ration.name}) - ${countSetBits(completedMeals)}/${frequency} yemləmə`,
       date: new Date(),
-      userId: userIdToUse
+      farmId: farmIdToUse
     }
   })
 
@@ -130,29 +132,35 @@ export async function addFeedingRecord(data: {
 }
 
 // UPDATE & DELETE ACTIONS
-export async function updateFeed(id: string, data: { name: string, unit: string, costPerUnit: number, stock: number }, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateFeed(id: string, data: { name: string, unit: string, costPerUnit: number, stock: number, minStock?: number }, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const feed = await prisma.feedItem.update({
-    where: { id, userId: userIdToUse },
-    data
+    where: { id, farmId: farmIdToUse },
+    data: {
+      name: data.name,
+      unit: data.unit,
+      costPerUnit: data.costPerUnit,
+      stock: data.stock,
+      minStock: data.minStock || 50
+    }
   })
   revalidatePath('/feeding')
   return feed
 }
 
-export async function deleteFeed(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
-  await prisma.feedItem.delete({ where: { id, userId: userIdToUse } })
+export async function deleteFeed(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
+  await prisma.feedItem.delete({ where: { id, farmId: farmIdToUse } })
   revalidatePath('/feeding')
 }
 
-export async function updateRation(id: string, name: string, description: string, items: { feedItemId: string, amount: number }[], targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateRation(id: string, name: string, description: string, items: { feedItemId: string, amount: number }[], targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   await prisma.rationItem.deleteMany({ where: { rationId: id } })
   
   const ration = await prisma.ration.update({
-    where: { id, userId: userIdToUse },
+    where: { id, farmId: farmIdToUse },
     data: {
       name,
       description,
@@ -168,9 +176,9 @@ export async function updateRation(id: string, name: string, description: string
   return ration
 }
 
-export async function deleteRation(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
-  await prisma.ration.delete({ where: { id, userId: userIdToUse } })
+export async function deleteRation(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
+  await prisma.ration.delete({ where: { id, farmId: farmIdToUse } })
   revalidatePath('/feeding')
 }
 
@@ -180,16 +188,16 @@ export async function updateFeedingRecord(id: string, data: {
   rationId: string,
   frequency?: number,
   completedMeals?: number
-}, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+}, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const frequency = data.frequency !== undefined ? data.frequency : 3
   const completedMeals = data.completedMeals !== undefined ? data.completedMeals : frequency
   
-  const oldRecord = await prisma.feedingRecord.findUnique({ where: { id, userId: userIdToUse } })
+  const oldRecord = await prisma.feedingRecord.findUnique({ where: { id, farmId: farmIdToUse } })
   if (oldRecord) {
      await prisma.financeRecord.deleteMany({
        where: { 
-         userId: userIdToUse,
+         farmId: farmIdToUse,
          description: { contains: oldRecord.groupName },
          amount: oldRecord.totalCost,
          category: 'YEM'
@@ -209,7 +217,7 @@ export async function updateFeedingRecord(id: string, data: {
   const actualCost = (totalDailyCost / frequency) * countSetBits(completedMeals)
 
   const record = await prisma.feedingRecord.update({
-    where: { id, userId: userIdToUse },
+    where: { id, farmId: farmIdToUse },
     data: {
       groupName: data.groupName,
       animalCount: data.animalCount,
@@ -231,7 +239,7 @@ export async function updateFeedingRecord(id: string, data: {
       amount: actualCost,
       description: `${data.groupName} qrupunun yemlənməsi (${ration.name}) - ${countSetBits(completedMeals)}/${frequency} Düzəliş`,
       date: new Date(),
-      userId: userIdToUse
+      farmId: farmIdToUse
     }
   })
 
@@ -240,35 +248,35 @@ export async function updateFeedingRecord(id: string, data: {
   return record
 }
 
-export async function deleteFeedingRecord(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
-  const record = await prisma.feedingRecord.findUnique({ where: { id, userId: userIdToUse } })
+export async function deleteFeedingRecord(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
+  const record = await prisma.feedingRecord.findUnique({ where: { id, farmId: farmIdToUse } })
   if (record) {
     await prisma.financeRecord.deleteMany({
       where: { 
-        userId: userIdToUse,
+        farmId: farmIdToUse,
         description: { contains: record.groupName },
         amount: record.totalCost,
         category: 'YEM'
       }
     })
-    await prisma.feedingRecord.delete({ where: { id, userId: userIdToUse } })
+    await prisma.feedingRecord.delete({ where: { id, farmId: farmIdToUse } })
   }
   revalidatePath('/feeding')
   revalidatePath('/finance')
 }
-export async function getFeedingRecords(targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function getFeedingRecords(targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   // Use raw SQL to get all fields including new ones that might be filtered by a stale Prisma client
   const records = await prisma.$queryRawUnsafe(`
     SELECT fr.*, r.name as rationName
     FROM FeedingRecord fr
     LEFT JOIN Ration r ON fr.rationId = r.id
-    WHERE fr.userId = ?
+    WHERE fr.farmId = ?
     ORDER BY fr.date DESC
     LIMIT 50
-  `, userIdToUse)
+  `, farmIdToUse)
 
   // Map to match expected UI structure (include ration object)
   return (records as any[]).map(r => ({

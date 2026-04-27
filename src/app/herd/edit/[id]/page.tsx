@@ -11,27 +11,27 @@ import { Suspense } from "react";
 function EditAnimalForm({ params }: { params: Promise<{ id: string }> }) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const targetUserId = searchParams.get('userId');
+  const targetFarmId = searchParams.get('farmId');
   
   const [animal, setAnimal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     params.then(p => {
-      getAnimal(p.id, targetUserId || undefined).then(res => {
+      getAnimal(p.id, targetFarmId || undefined).then(res => {
         if (!res) notFound();
         setAnimal(res);
         setLoading(false);
       });
     });
-  }, [params, targetUserId]);
+  }, [params, targetFarmId]);
 
   if (loading) return <div className="p-20 text-center font-bold text-gray-400">Yüklənir...</div>;
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <header className="mb-8 flex items-center gap-4">
-        <Link href={targetUserId ? `/admin/users/${targetUserId}/view` : "/herd"} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+        <Link href={targetFarmId ? `/admin/farms/${targetFarmId}/view` : "/herd"} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
           <ArrowLeft className="w-6 h-6 text-gray-600" />
         </Link>
         <div>
@@ -42,8 +42,8 @@ function EditAnimalForm({ params }: { params: Promise<{ id: string }> }) {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
         <form action={async (formData) => {
-          await updateAnimal(animal.id, formData, targetUserId || undefined);
-          router.push(targetUserId ? `/admin/users/${targetUserId}/view` : "/herd");
+          await updateAnimal(animal.id, formData, targetFarmId || undefined);
+          router.push(targetFarmId ? `/admin/farms/${targetFarmId}/view` : "/herd");
         }} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

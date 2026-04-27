@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 
 async function checkAdmin() {
   const session = await auth()
-  if (session?.user?.role !== 'ADMIN') {
+  if (session?.user?.role !== 'SUPER_ADMIN') {
     throw new Error("İcazəniz yoxdur")
   }
   return session
@@ -22,7 +22,16 @@ export async function getUsers() {
       name: true,
       role: true,
       isActive: true,
-      createdAt: true
+      createdAt: true,
+      farmId: true,
+      farm: {
+        select: {
+          id: true,
+          name: true,
+          subscriptionStatus: true,
+          subscriptionExpires: true
+        }
+      }
     }
   })
 }
@@ -32,6 +41,15 @@ export async function toggleUserStatus(id: string, currentStatus: boolean) {
   await prisma.user.update({
     where: { id },
     data: { isActive: !currentStatus }
+  })
+  revalidatePath('/admin/users')
+}
+
+export async function updateFarmSubscription(farmId: string, status: string) {
+  await checkAdmin()
+  await prisma.farm.update({
+    where: { id: farmId },
+    data: { subscriptionStatus: status }
   })
   revalidatePath('/admin/users')
 }

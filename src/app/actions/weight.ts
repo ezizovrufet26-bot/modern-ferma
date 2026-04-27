@@ -4,44 +4,49 @@ import prisma from '@/lib/prisma'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 
-async function getSession() {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error("Sessiya yoxdur")
-  return session
-}
+import { getFarmId } from '@/lib/auth-utils'
 
-async function getTargetUserId(targetUserId?: string) {
-  const session = await getSession()
-  if (targetUserId && session.user.role === 'ADMIN') return targetUserId
-  return session.user.id
-}
+export async function addWeightRecord(animalId: string, weight: number, note?: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
+  
+  // Verify ownership
+  const animal = await prisma.animal.findFirst({
+    where: { id: animalId, farmId: farmIdToUse }
+  })
+  if (!animal) throw new Error("Heyvan tapılmadı")
 
-export async function addWeightRecord(animalId: string, weight: number, note?: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
   const record = await prisma.weightRecord.create({
     data: {
       animalId,
       weight,
-      note,
-      userId: userIdToUse
+      note
     }
   })
   revalidatePath('/herd')
   return record
 }
 
-export async function updateWeightRecord(id: string, weight: number, note?: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateWeightRecord(id: string, weight: number, note?: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
+  
   const record = await prisma.weightRecord.update({
-    where: { id, userId: userIdToUse },
+    where: { 
+      id,
+      animal: { farmId: farmIdToUse }
+    },
     data: { weight, note }
   })
   revalidatePath('/herd')
   return record
 }
 
-export async function deleteWeightRecord(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
-  await prisma.weightRecord.delete({ where: { id, userId: userIdToUse } })
+export async function deleteWeightRecord(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
+  await prisma.weightRecord.delete({ 
+    where: { 
+      id,
+      animal: { farmId: farmIdToUse }
+    } 
+  })
   revalidatePath('/herd')
 }

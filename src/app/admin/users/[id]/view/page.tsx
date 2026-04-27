@@ -6,6 +6,8 @@ import FeedingClient from "@/components/FeedingClient";
 import FinanceClient from "@/components/FinanceClient";
 import StaffClient from "@/components/StaffClient";
 import MilkClient from "@/components/MilkClient";
+import HealthClient from "@/components/HealthClient";
+import TeamClient from "@/components/TeamClient";
 import { getAnimalGroup } from "@/lib/herd-utils";
 
 import { 
@@ -34,10 +36,10 @@ import {
 import { getFinanceRecords, addFinanceRecord, deleteFinanceRecord, updateFinanceRecord } from "@/app/actions/finance";
 import { getStaff, createStaff, deleteStaff } from "@/app/actions/staff";
 import { getMilkRecords, addMilkRecord, deleteMilkRecord, updateMilkRecord } from "@/app/actions/milk";
-import HealthClient from "@/components/HealthClient";
+import { getTeamUsers } from "@/app/actions/team";
 
 import Link from "next/link";
-import { ArrowLeft, User as UserIcon, Database, Wheat, Banknote, ShieldCheck, Droplets, Activity } from "lucide-react";
+import { ArrowLeft, User as UserIcon, Database, Wheat, Banknote, ShieldCheck, Droplets, Activity, Users } from "lucide-react";
 
 export default async function UserDashboardView({ 
   params,
@@ -47,7 +49,7 @@ export default async function UserDashboardView({
   searchParams: Promise<{ tab?: string }> 
 }) {
   const session = await auth();
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!session || session.user.role !== 'SUPER_ADMIN') {
     redirect("/");
   }
 
@@ -56,13 +58,15 @@ export default async function UserDashboardView({
 
   const targetUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true, id: true }
+    include: { farm: true }
   });
 
-  if (!targetUser) notFound();
+  if (!targetUser || !targetUser.farmId) notFound();
+  
+  const farmId = targetUser.farmId;
 
-  // Pre-fetch animals for counts
-  const animals = await getAnimals(userId);
+  // Pre-fetch animals for counts using farmId
+  const animals = await getAnimals(farmId);
   const groupCounts: Record<string, number> = {};
   animals.forEach((a: any) => {
     const group = getAnimalGroup(a);
@@ -82,8 +86,8 @@ export default async function UserDashboardView({
                 <UserIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />
               </div>
               <div className="overflow-hidden">
-                <h1 className="text-lg md:text-2xl font-black tracking-tight truncate">{targetUser.name}</h1>
-                <p className="text-gray-400 font-bold text-[10px] md:text-sm truncate">{targetUser.email}</p>
+                <h1 className="text-lg md:text-2xl font-black tracking-tight truncate">{targetUser.farm?.name || targetUser.name}</h1>
+                <p className="text-gray-400 font-bold text-[10px] md:text-sm truncate">Admin: {targetUser.name} ({targetUser.email})</p>
               </div>
             </div>
           </div>
@@ -110,11 +114,14 @@ export default async function UserDashboardView({
            <Link href={`/admin/users/${userId}/view?tab=finance`} className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-wider border transition-all ${tab === 'finance' ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20' : 'text-gray-400 border-transparent hover:bg-gray-50'}`}>
               <Banknote className="w-3.5 h-3.5 md:w-4 md:h-4" /> Maliyyə
            </Link>
-           <Link href={`/admin/users/${userId}/view?tab=staff`} className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-wider border transition-all ${tab === 'staff' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-600/20' : 'text-gray-400 border-transparent hover:bg-gray-50'}`}>
-              <UserIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /> Heyət
-           </Link>
            <Link href={`/admin/users/${userId}/view?tab=health_all`} className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-wider border transition-all ${tab === 'health_all' ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20' : 'text-gray-400 border-transparent hover:bg-gray-50'}`}>
               <Activity className="w-3.5 h-3.5 md:w-4 md:h-4" /> Sağlamlıq
+           </Link>
+           <Link href={`/admin/users/${userId}/view?tab=users`} className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-wider border transition-all ${tab === 'users' ? 'bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-800/20' : 'text-gray-400 border-transparent hover:bg-gray-50'}`}>
+              <Users className="w-3.5 h-3.5 md:w-4 md:h-4" /> İstifadəçilər
+           </Link>
+           <Link href={`/admin/users/${userId}/view?tab=staff`} className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-wider border transition-all ${tab === 'staff' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-600/20' : 'text-gray-400 border-transparent hover:bg-gray-50'}`}>
+              <UserIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /> Heyət
            </Link>
         </div>
       </nav>
@@ -123,8 +130,8 @@ export default async function UserDashboardView({
         {tab === 'herd' && (
           <HerdClient 
             animals={animals as any} 
-            staffList={await getStaff(userId)}
-            targetUserId={userId}
+            staffList={await getStaff(farmId)}
+            targetFarmId={farmId}
             deleteAction={deleteAnimal}
             saveAIAction={saveArtificialInsemination}
             updateAIAction={updateArtificialInsemination}
@@ -145,9 +152,9 @@ export default async function UserDashboardView({
 
         {tab === 'feeding' && (
           <FeedingClient 
-            initialFeeds={await getFeeds(userId)}
-            initialRations={await getRations(userId)}
-            initialHistory={await getFeedingRecords(userId)}
+            initialFeeds={await getFeeds(farmId)}
+            initialRations={await getRations(farmId)}
+            initialHistory={await getFeedingRecords(farmId)}
             groupCounts={groupCounts}
             getFeedsAction={getFeeds}
             getRationsAction={getRations}
@@ -161,39 +168,46 @@ export default async function UserDashboardView({
             addFeedingRecordAction={addFeedingRecord}
             updateFeedingRecordAction={updateFeedingRecord}
             deleteFeedingRecordAction={deleteFeedingRecord}
-            targetUserId={userId}
+            targetFarmId={farmId}
           />
         )}
 
         {tab === 'milk' && (
           <MilkClient 
             animals={animals as any}
-            initialRecords={await getMilkRecords(userId)}
+            initialRecords={await getMilkRecords(farmId)}
             addAction={addMilkRecord}
             deleteAction={deleteMilkRecord}
             updateAction={updateMilkRecord}
-            targetUserId={userId}
+            targetFarmId={farmId}
           />
         )}
 
         {tab === 'finance' && (
           <FinanceClient 
-            initialRecords={await getFinanceRecords(userId)}
-            staffList={await getStaff(userId)}
+            initialRecords={await getFinanceRecords(farmId)}
+            staffList={await getStaff(farmId)}
             addAction={addFinanceRecord}
             deleteAction={deleteFinanceRecord}
             updateAction={updateFinanceRecord}
-            targetUserId={userId}
+            targetFarmId={farmId}
           />
         )}
 
 
         {tab === 'staff' && (
           <StaffClient 
-            initialStaff={await getStaff(userId)}
+            initialStaff={await getStaff(farmId)}
             createAction={createStaff}
             deleteAction={deleteStaff}
-            targetUserId={userId}
+            targetFarmId={farmId}
+          />
+        )}
+
+        {tab === 'users' && (
+          <TeamClient 
+            initialTeam={await getTeamUsers(farmId)}
+            targetFarmId={farmId}
           />
         )}
 
@@ -209,7 +223,7 @@ export default async function UserDashboardView({
             updateVaccineAction={updateVaccineAction}
             deleteVaccineAction={deleteVaccineAction}
             addMassVaccineAction={addMassVaccineAction}
-            targetUserId={userId}
+            targetFarmId={farmId}
            />
         )}
       </main>

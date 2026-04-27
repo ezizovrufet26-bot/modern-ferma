@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getAnimals } from "@/app/actions/herd";
 import { 
   Users, 
@@ -16,20 +17,33 @@ import {
   Info, 
   Check,
   Shield,
-  Settings
+  Settings,
+  Bell
 } from "lucide-react";
 import { getAnimalGroup } from "@/lib/herd-utils";
 import { auth, signOut } from "@/auth";
 import { getMilkRecords } from "@/app/actions/milk";
 import { getFinanceRecords } from "@/app/actions/finance";
+import { getFeeds } from "@/app/actions/feeding";
+import AnalyticsClient from "@/components/AnalyticsClient";
+import NotificationCenter from "@/components/NotificationCenter";
+import TaskWidget from "@/components/TaskWidget";
+import { generateAutomatedTasks } from "@/lib/task-engine";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const animals = await getAnimals();
+  if (!session) {
+    redirect("/login");
+  }
+  const animals = await getAnimals() as any[];
   const milkRecords = await getMilkRecords();
   const financeRecords = await getFinanceRecords();
+  const feeds = await getFeeds();
 
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const automatedTasks = generateAutomatedTasks(animals, feeds);
+
+  const isAdmin = session?.user?.role === 'SUPER_ADMIN';
+  const isFarmAdmin = session?.user?.role === 'FARM_ADMIN';
 
   // Group Counts
   const counts = animals.reduce((acc: any, a) => {
@@ -70,7 +84,7 @@ export default async function DashboardPage() {
 
   // Milk Stats
   const todayMilk = milkRecords.filter(r => new Date(r.date).toISOString().split('T')[0] === todayStr).reduce((acc, r) => acc + r.totalYield, 0);
-  const avgMilk = milkRecords.length > 0 ? (milkRecords.reduce((acc, r) => acc + r.totalYield, 0) / milkRecords.length).toFixed(1) : 0;
+  const avgMilk = milkRecords.length > 0 ? (milkRecords.reduce((acc, r) => acc + r.totalYield, 0) / milkRecords.length).toFixed(0) : 0;
 
   // Finance Stats
   const thisMonth = today.getMonth();
@@ -84,260 +98,190 @@ export default async function DashboardPage() {
   const expense = monthlyFinance.filter(r => r.type === 'EXPENSE').reduce((acc, r) => acc + r.amount, 0);
   const balance = income - expense;
 
+  // Analytics Data preparation
+  const last14Days = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (13 - i));
+    return d.toISOString().split('T')[0];
+  });
+
+  const milkData = last14Days.map(date => {
+    const dayMilk = milkRecords.filter(r => new Date(r.date).toISOString().split('T')[0] === date)
+      .reduce((acc, r) => acc + r.totalYield, 0);
+    const d = new Date(date);
+    const label = d.toLocaleDateString('az-AZ', { day: 'numeric', month: 'short' });
+    return { name: label, yield: dayMilk };
+  });
+
+  const herdData = last14Days.map(date => {
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    const count = animals.filter(a => new Date(a.createdAt) <= d).length;
+    const label = new Date(date).toLocaleDateString('az-AZ', { day: 'numeric', month: 'short' });
+    return { name: label, count };
+  });
+
+  const financeData = [
+    { name: 'Gəlir', value: income, color: '#10b981' },
+    { name: 'Xərc', value: expense, color: '#ef4444' }
+  ];
+
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 animate-in">
       <div className="bg-blue-600 text-white text-center py-2 rounded-xl text-xs font-black tracking-widest shadow-lg animate-pulse">
-        🚀 MODERN FERMA v2.0 - LATEST UPDATE (23 APRIL) 🚀
+        🚀 MODERN FERMA SaaS v2.5 - ENTERPRISE EDITION 🚀
       </div>
+      
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-              Xoş Gəldiniz <span className="text-blue-600">{session?.user?.name?.split(' ')[0] || 'İstifadəçi'}!</span>
+              {isAdmin ? "Super Admin Paneli" : "Fərma Dashboard"}
             </h1>
-            {isAdmin && (
-              <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full border border-blue-100 flex items-center gap-1.5 shadow-sm">
-                <Shield className="w-3 h-3" /> ADMIN
-              </span>
-            )}
+            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isAdmin ? 'bg-slate-900 text-white' : isFarmAdmin ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
+              {isAdmin ? 'Super Admin' : isFarmAdmin ? 'Fərma Admin' : 'İstifadəçi'}
+            </span>
           </div>
-          <p className="text-gray-500 mt-2 font-medium flex items-center gap-2">
-            <Calendar className="w-4 h-4" /> {new Date().toLocaleDateString('az-AZ', { day: 'numeric', month: 'long', year: 'numeric' })} • Sürü vəziyyəti stabildir.
-          </p>
+          <p className="text-gray-500 mt-1 font-bold text-lg">Xoş gəldiniz, {session.user.name}</p>
         </div>
         
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0 scrollbar-hide w-full md:w-auto -mx-2 px-2">
-          {isAdmin && (
-            <Link href="/admin/users" className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-slate-900/20 flex items-center gap-2 hover:bg-black whitespace-nowrap shrink-0">
-              <Users className="w-5 h-5" /> <span className="text-sm">İstifadəçilər</span>
-            </Link>
-          )}
-          <Link href="/staff" className="bg-white border border-gray-200 hover:border-blue-500 hover:text-blue-600 px-6 py-3.5 rounded-2xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0">
-            <Stethoscope className="w-5 h-5" /> <span className="text-sm">Həkimlər</span>
-          </Link>
-          <Link href="/herd/new" className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-blue-600/20 flex items-center gap-2 transform hover:scale-105 whitespace-nowrap shrink-0">
-            <Plus className="w-5 h-5" /> <span className="text-sm">Yeni Heyvan</span>
-          </Link>
-          
-          <form action={async () => {
-            'use server'
-            await signOut({ redirectTo: '/login' })
-          }} className="shrink-0">
-            <button className="w-12 h-12 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl border border-red-100 hover:bg-red-100 transition-all shadow-sm">
-              <LogOut className="w-5 h-5" />
-            </button>
-          </form>
+        <div className="flex items-center gap-3">
+           <NotificationCenter tasks={automatedTasks} />
+           <form action={async () => {
+             'use server'
+             await signOut()
+           }}>
+             <button className="flex items-center gap-2 bg-white border border-gray-100 px-6 py-4 rounded-2xl text-red-600 font-bold hover:bg-red-50 transition-all shadow-sm">
+               <LogOut className="w-5 h-5" /> Çıxış
+             </button>
+           </form>
         </div>
       </header>
 
-      {/* STATS OVERVIEW */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="glass-panel rounded-[32px] p-6 shadow-xl shadow-blue-500/5 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Database className="w-20 h-20 text-blue-600" />
+      {/* QUICK STATS CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-8 rounded-[40px] shadow-2xl shadow-blue-600/5 border border-gray-100 flex items-center gap-6 hover:translate-y-[-4px] transition-all">
+          <div className="p-5 bg-blue-50 text-blue-600 rounded-3xl">
+            <Database className="w-8 h-8" />
           </div>
-          <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-1">Cəmi Heyvan</p>
-          <h3 className="text-4xl font-black text-gray-900">{animals.length}</h3>
-          <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 w-fit px-3 py-1 rounded-full">
-            <TrendingUp className="w-3 h-3" /> Aktiv Sürü
-          </div>
-        </div>
-
-        <div className="glass-panel rounded-[32px] p-6 shadow-xl shadow-blue-500/5 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Droplets className="w-20 h-20 text-blue-500" />
-          </div>
-          <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-1">Sağmal İnek</p>
-          <h3 className="text-4xl font-black text-gray-900">{milking}</h3>
-          <div className="mt-4 flex items-center gap-2 text-blue-600 font-bold text-xs bg-blue-50 w-fit px-3 py-1 rounded-full">
-            <Info className="w-3 h-3" /> {((milking / (animals.length || 1)) * 100).toFixed(0)}% sürü payı
-          </div>
-        </div>
-
-        <div className="glass-panel rounded-[32px] p-6 shadow-xl shadow-blue-500/5 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Activity className="w-20 h-20 text-emerald-500" />
-          </div>
-          <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-1">Hamiləlik</p>
-          <h3 className="text-4xl font-black text-gray-900">{pregnant}</h3>
-          <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 w-fit px-3 py-1 rounded-full">
-            <Check className="w-3 h-3" /> İdeal vəziyyət
-          </div>
-        </div>
-
-        <div className="glass-panel rounded-[32px] p-6 shadow-xl shadow-red-500/5 border-red-100 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Stethoscope className="w-20 h-20 text-red-500" />
-          </div>
-          <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-1">Müalicədə</p>
-          <h3 className="text-4xl font-black text-gray-900">{sick}</h3>
-          <div className="mt-4 flex items-center gap-2 text-red-600 font-bold text-xs bg-red-50 w-fit px-3 py-1 rounded-full">
-            <Activity className="w-3 h-3" /> Sağlamlıq qeydi
-          </div>
-        </div>
-      </section>
-
-      {/* DETAILED CATEGORIES */}
-      <section className="glass-panel rounded-[40px] p-10 shadow-2xl shadow-blue-500/5">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Qrup Bölgüləri</h2>
-            <p className="text-gray-500 text-sm font-medium mt-1">Sürünün bioloji və məhsuldarlıq vəziyyəti</p>
+            <div className="text-3xl font-black text-gray-900">{animals.length}</div>
+            <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Sürü Sayı</div>
           </div>
-          <Link href="/herd" className="text-blue-600 font-bold text-sm hover:underline flex items-center gap-2">
-            Bütün Siyahı <ArrowRight className="w-4 h-4" />
-          </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6">
-          <Link href="/herd?group=YENİ DOĞANLAR" className="group relative">
-            <div className="bg-pink-500/10 border border-pink-500/20 rounded-[28px] p-6 text-center transition-all duration-300 group-hover:bg-pink-500 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-pink-500/20">
-              <span className="block text-[10px] font-black uppercase text-pink-600 group-hover:text-pink-100 mb-1">0-90 GÜN</span>
-              <span className="block text-2xl font-black text-pink-700 group-hover:text-white">{fresh}</span>
-              <span className="block text-[11px] font-bold text-pink-500 group-hover:text-pink-200 mt-2">Yeni Doğan</span>
-            </div>
-          </Link>
-
-          <Link href="/herd?group=SAĞMAL 1" className="group relative">
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-[28px] p-6 text-center transition-all duration-300 group-hover:bg-blue-600 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-blue-600/20">
-              <span className="block text-[10px] font-black uppercase text-blue-600 group-hover:text-blue-100 mb-1">PEAK</span>
-              <span className="block text-2xl font-black text-blue-700 group-hover:text-white">{milking1}</span>
-              <span className="block text-[11px] font-bold text-blue-500 group-hover:text-blue-200 mt-2">Sağmal 1</span>
-            </div>
-          </Link>
-
-          <Link href="/herd?group=SAĞMAL 2" className="group relative">
-            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-[28px] p-6 text-center transition-all duration-300 group-hover:bg-cyan-600 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-cyan-600/20">
-              <span className="block text-[10px] font-black uppercase text-cyan-600 group-hover:text-cyan-100 mb-1">ORTA</span>
-              <span className="block text-2xl font-black text-cyan-700 group-hover:text-white">{milking2}</span>
-              <span className="block text-[11px] font-bold text-cyan-500 group-hover:text-cyan-200 mt-2">Sağmal 2</span>
-            </div>
-          </Link>
-
-          <Link href="/herd?group=QURUYA ÇIXANLAR" className="group relative">
-            <div className="bg-orange-500/10 border border-orange-500/20 rounded-[28px] p-6 text-center transition-all duration-300 group-hover:bg-orange-600 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-orange-600/20">
-              <span className="block text-[10px] font-black uppercase text-orange-600 group-hover:text-orange-100 mb-1">-60 GÜN</span>
-              <span className="block text-2xl font-black text-orange-700 group-hover:text-white">{dryOff}</span>
-              <span className="block text-[11px] font-bold text-orange-500 group-hover:text-orange-200 mt-2">Quruda</span>
-            </div>
-          </Link>
-
-          <Link href="/herd?group=DOĞUMA 1 AY QALMIŞLAR" className="group relative">
-            <div className="bg-red-500/10 border border-red-500/20 rounded-[28px] p-6 text-center transition-all duration-300 group-hover:bg-red-600 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-red-600/20">
-              <span className="block text-[10px] font-black uppercase text-red-600 group-hover:text-red-100 mb-1">-30 GÜN</span>
-              <span className="block text-2xl font-black text-red-700 group-hover:text-white">{closeup}</span>
-              <span className="block text-[11px] font-bold text-red-500 group-hover:text-red-200 mt-2">Klose-up</span>
-            </div>
-          </Link>
-
-          <Link href="/herd?group=BUZOVLAR" className="group relative">
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-[28px] p-6 text-center transition-all duration-300 group-hover:bg-emerald-600 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-emerald-600/20">
-              <span className="block text-[10px] font-black uppercase text-emerald-600 group-hover:text-emerald-100 mb-1">GƏNC</span>
-              <span className="block text-2xl font-black text-emerald-700 group-hover:text-white">{calves}</span>
-              <span className="block text-[11px] font-bold text-emerald-500 group-hover:text-emerald-200 mt-2">Buzovlar</span>
-            </div>
-          </Link>
-
-          <Link href="/herd?group=DANALAR" className="group relative">
-            <div className="bg-purple-500/10 border border-purple-500/20 rounded-[28px] p-6 text-center transition-all duration-300 group-hover:bg-purple-600 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-purple-600/20">
-              <span className="block text-[10px] font-black uppercase text-purple-600 group-hover:text-purple-100 mb-1">DÜYƏ</span>
-              <span className="block text-2xl font-black text-purple-700 group-hover:text-white">{heifers}</span>
-              <span className="block text-[11px] font-bold text-purple-500 group-hover:text-purple-200 mt-2">Danalar</span>
-            </div>
-          </Link>
+        <div className="bg-white p-8 rounded-[40px] shadow-2xl shadow-sky-600/5 border border-gray-100 flex items-center gap-6 hover:translate-y-[-4px] transition-all">
+          <div className="p-5 bg-sky-50 text-sky-600 rounded-3xl">
+            <Milk className="w-8 h-8" />
+          </div>
+          <div>
+            <div className="text-3xl font-black text-gray-900">{todayMilk.toFixed(0)} <span className="text-sm">L</span></div>
+            <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Bugünkü Süd</div>
+          </div>
         </div>
-      </section>
 
-      {/* FINANCE & MILK PERFORMANCE */}
+        <div className="bg-white p-8 rounded-[40px] shadow-2xl shadow-emerald-600/5 border border-gray-100 flex items-center gap-6 hover:translate-y-[-4px] transition-all">
+          <div className="p-5 bg-emerald-50 text-emerald-600 rounded-3xl">
+            <Wallet className="w-8 h-8" />
+          </div>
+          <div>
+            <div className={`text-2xl font-black ${balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+              {balance.toFixed(0)} <span className="text-sm font-bold">AZN</span>
+            </div>
+            <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Aylıq Balans</div>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[40px] shadow-2xl shadow-red-600/5 border border-gray-100 flex items-center gap-6 hover:translate-y-[-4px] transition-all">
+          <div className="p-5 bg-red-50 text-red-600 rounded-3xl">
+            <Stethoscope className="w-8 h-8" />
+          </div>
+          <div>
+            <div className="text-3xl font-black text-gray-900">{sick}</div>
+            <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Xəstə/Müalicə</div>
+          </div>
+        </div>
+      </div>
+
+      {/* AUTOMATED TASKS WIDGET */}
+      <TaskWidget tasks={automatedTasks} />
+
+      {/* ANALYTICS SECTION */}
+      <AnalyticsClient 
+        milkData={milkData} 
+        financeData={financeData} 
+        herdData={herdData}
+        income={income} 
+        expense={expense} 
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-2 glass-panel rounded-[40px] p-10 shadow-2xl shadow-blue-500/5">
-          <div className="flex justify-between items-center mb-10">
-            <div>
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight">Məhsuldarlıq</h2>
-              <p className="text-gray-500 text-sm font-medium mt-1">Süd verimi və qrafik analizi</p>
-            </div>
-            <div className="flex gap-2">
-               <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                 <Droplets className="w-5 h-5" />
-               </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-blue-600 rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-600/30">
-              <div className="absolute -right-10 -bottom-10 opacity-20 transform rotate-12">
-                <Droplets className="w-48 h-48" />
+        {/* REPRODUCTION STATUS */}
+        <div className="lg:col-span-1 bg-white p-8 rounded-[40px] shadow-2xl shadow-purple-600/5 border border-gray-100">
+           <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
+             <Activity className="w-6 h-6 text-purple-600" /> Reproduksiya
+           </h3>
+           <div className="space-y-4">
+              <div className="flex justify-between items-center p-5 bg-purple-50 rounded-3xl">
+                 <span className="font-bold text-purple-900">Boğaz Heyvanlar</span>
+                 <span className="text-2xl font-black text-purple-600">{pregnant}</span>
               </div>
-              <p className="text-blue-100 font-bold text-xs uppercase tracking-widest mb-2">Gündəlik Ortalam SGG</p>
-              <h4 className="text-5xl font-black mb-6">{avgMilk} <span className="text-2xl opacity-70">LT</span></h4>
-              <div className="flex items-center gap-3 bg-white/10 w-fit px-4 py-2 rounded-2xl backdrop-blur-md">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold">Son qeydlər üzrə</span>
+              <div className="flex justify-between items-center p-5 bg-amber-50 rounded-3xl">
+                 <span className="font-bold text-amber-900">Quruya çıxanlar</span>
+                 <span className="text-2xl font-black text-amber-600">{dryOff}</span>
               </div>
-            </div>
+              <div className="flex justify-between items-center p-5 bg-red-50 rounded-3xl">
+                 <span className="font-bold text-red-900">Açıq (Boş) İnəklər</span>
+                 <span className="text-2xl font-black text-red-600">{empty}</span>
+              </div>
+           </div>
+        </div>
 
-            <div className="space-y-6">
-              <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 font-bold text-[10px] uppercase tracking-widest mb-1">Cəmi Süd (Bu gün)</p>
-                  <p className="text-2xl font-black text-gray-900">{todayMilk.toLocaleString()} LT</p>
+        {/* HERD GROUPS */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100">
+          <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-2">
+             <Users className="w-6 h-6 text-blue-600" /> Sürü Qrupları Üzrə Say
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { name: 'Sağmal', count: milking, color: 'bg-blue-100 text-blue-600' },
+              { name: 'Buzov', count: calves, color: 'bg-sky-100 text-sky-600' },
+              { name: 'Dana', count: heifers, color: 'bg-indigo-100 text-indigo-600' },
+              { name: 'Dügə', count: counts['DÜGƏLƏR'] || 0, color: 'bg-purple-100 text-purple-600' },
+            ].map((group) => (
+              <div key={group.name} className="p-6 rounded-[32px] border border-gray-50 flex flex-col items-center text-center group hover:bg-gray-50 transition-colors">
+                <div className={`w-12 h-12 rounded-2xl ${group.color} flex items-center justify-center font-black text-lg mb-3 group-hover:scale-110 transition-transform`}>
+                  {group.count}
                 </div>
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-100">
-                  <TrendingUp className="w-6 h-6 text-emerald-500" />
-                </div>
+                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{group.name}</div>
               </div>
-              <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 font-bold text-[10px] uppercase tracking-widest mb-1">Hədəf Verim</p>
-                  <p className="text-2xl font-black text-gray-900">1,500 LT</p>
-                </div>
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-100">
-                  <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
+      </div>
 
-        <section className="glass-panel rounded-[40px] p-10 shadow-2xl shadow-blue-500/5 flex flex-col">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Maliyyə</h2>
-            <Link href="/finance" className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-              <Wallet className="w-5 h-5" />
-            </Link>
-          </div>
-          
-          <div className="space-y-8 flex-1 flex flex-col justify-center">
-            <div className="text-center">
-              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Balans (Bu ay)</p>
-              <h4 className="text-5xl font-black text-gray-900">₼ {balance.toLocaleString()}</h4>
-              <p className={`${balance >= 0 ? 'text-emerald-500' : 'text-red-500'} font-bold text-sm mt-2 flex items-center justify-center gap-1`}>
-                {balance >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />} 
-                ₼ {Math.abs(balance).toLocaleString()} net
-              </p>
+      {/* QUICK LINKS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        {[
+          { label: 'Heyvan Əlavə Et', icon: Plus, href: '/herd/new', color: 'bg-blue-600' },
+          { label: 'Süd Qeydi', icon: Droplets, iconColor: 'text-sky-500', href: '/milk' },
+          { label: 'Yemləmə', icon: Milk, iconColor: 'text-amber-500', href: '/feeding' },
+          { label: 'Maliyyə', icon: Wallet, iconColor: 'text-emerald-500', href: '/finance' },
+          { label: 'Sürü Siyahısı', icon: Database, iconColor: 'text-indigo-500', href: '/herd' },
+          { label: isAdmin ? 'Admin Panel' : 'Ayarlar', icon: isAdmin ? Shield : Settings, iconColor: 'text-gray-500', href: isAdmin ? '/admin/users' : '/settings' },
+        ].map((link, i) => (
+          <Link 
+            key={i}
+            href={link.href}
+            className={`p-6 rounded-[32px] ${link.color || 'bg-white border border-gray-100 shadow-sm'} flex flex-col items-center text-center gap-4 hover:translate-y-[-6px] transition-all group`}
+          >
+            <div className={`p-4 rounded-2xl ${link.color ? 'bg-white/20 text-white' : 'bg-gray-50 ' + link.iconColor} group-hover:scale-110 transition-transform`}>
+              <link.icon className="w-6 h-6" />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 text-center">
-                <p className="text-emerald-600 font-bold text-[10px] uppercase mb-1">Gəlir</p>
-                <p className="text-lg font-black text-emerald-700">₼ {(income/1000).toFixed(1)}k</p>
-              </div>
-              <div className="bg-red-50 p-6 rounded-3xl border border-red-100 text-center">
-                <p className="text-red-600 font-bold text-[10px] uppercase mb-1">Xərc</p>
-                <p className="text-lg font-black text-red-700">₼ {(expense/1000).toFixed(1)}k</p>
-              </div>
-            </div>
-          </div>
-          
-          <button className="mt-10 w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl shadow-gray-900/20">
-            Hesabatı Yüklə
-          </button>
-        </section>
+            <div className={`text-[11px] font-black uppercase tracking-wider ${link.color ? 'text-white' : 'text-gray-900'}`}>{link.label}</div>
+          </Link>
+        ))}
       </div>
     </div>
   );
 }
-
-const ArrowRight = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-);

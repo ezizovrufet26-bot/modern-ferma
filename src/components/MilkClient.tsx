@@ -17,20 +17,22 @@ export default function MilkClient({
   addAction, 
   deleteAction, 
   updateAction,
-  targetUserId 
+  targetFarmId 
 }: { 
   animals: any[],
   initialRecords: any[],
-  addAction: (formData: FormData, targetUserId?: string) => Promise<void>,
-  deleteAction: (id: string, targetUserId?: string) => Promise<void>,
-  updateAction: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
-  targetUserId?: string
+  addAction: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  deleteAction: (id: string, targetFarmId?: string) => Promise<void>,
+  updateAction: (id: string, formData: FormData, targetFarmId?: string) => Promise<void>,
+  targetFarmId?: string
 }) {
   const [records, setRecords] = useState(initialRecords);
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [modalSearchTerm, setModalSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = initialRecords.filter(r => new Date(r.date).toISOString().split('T')[0] === today);
@@ -215,52 +217,81 @@ export default function MilkClient({
                     </tr>
                   </thead>
                   <tbody>
-                    {initialRecords
-                      .filter(r => r.animal.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map((record) => (
-                      <tr key={record.id} className="group bg-white hover:bg-blue-50/30 transition-all border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5">
-                        <td className="px-8 py-6 rounded-l-[32px] border-y border-l border-gray-100">
-                           <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 font-black text-sm">
-                                 {record.animal.tagNumber.slice(-2)}
-                              </div>
-                              <span className="font-black text-gray-900">{record.animal.tagNumber}</span>
-                           </div>
-                        </td>
-                        <td className="px-8 py-6 border-y border-gray-100 text-sm font-bold text-gray-500">
-                           {new Date(record.date).toLocaleDateString('az-AZ')}
-                        </td>
-                        <td className="px-8 py-6 border-y border-gray-100 text-center font-bold text-gray-900">
-                           {record.yieldMorning}
-                        </td>
-                        <td className="px-8 py-6 border-y border-gray-100 text-center font-bold text-gray-900">
-                           {record.yieldEvening}
-                        </td>
-                        <td className="px-8 py-6 border-y border-gray-100 text-center">
-                           <span className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg shadow-blue-600/20">
-                             {record.totalYield} L
-                           </span>
-                        </td>
-                        <td className="px-8 py-6 rounded-r-[32px] border-y border-r border-gray-100 text-center">
-                           <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => { setEditingRecord(record); setShowModal(true); }}
-                                className="w-10 h-10 bg-gray-50 text-gray-400 hover:bg-blue-600 hover:text-white rounded-xl transition-all flex items-center justify-center"
-                              >
-                                 <Edit className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={async () => {
-                                  if (confirm('Silinsin?')) await deleteAction(record.id, targetUserId);
-                                }}
-                                className="w-10 h-10 bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-xl transition-all flex items-center justify-center"
-                              >
-                                 <Trash2 className="w-4 h-4" />
-                              </button>
-                           </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {(() => {
+                      const filtered = initialRecords
+                        .filter(r => r.animal.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                      
+                      const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                      const displayed = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+                      return (
+                        <>
+                          {displayed.map((record) => (
+                            <tr key={record.id} className="group bg-white hover:bg-blue-50/30 transition-all border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5">
+                              <td className="px-8 py-6 rounded-l-[32px] border-y border-l border-gray-100">
+                                 <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 font-black text-sm">
+                                       {record.animal.tagNumber.slice(-2)}
+                                    </div>
+                                    <span className="font-black text-gray-900">{record.animal.tagNumber}</span>
+                                 </div>
+                              </td>
+                              <td className="px-8 py-6 border-y border-gray-100 text-sm font-bold text-gray-500">
+                                 {new Date(record.date).toLocaleDateString('az-AZ')}
+                              </td>
+                              <td className="px-8 py-6 border-y border-gray-100 text-center font-bold text-gray-900">
+                                 {record.yieldMorning.toFixed(0)}
+                              </td>
+                              <td className="px-8 py-6 border-y border-gray-100 text-center font-bold text-gray-900">
+                                 {record.yieldEvening.toFixed(0)}
+                              </td>
+                              <td className="px-8 py-6 border-y border-gray-100 text-center">
+                                 <span className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg shadow-blue-600/20">
+                                   {record.totalYield.toFixed(0)} L
+                                 </span>
+                              </td>
+                              <td className="px-8 py-6 rounded-r-[32px] border-y border-r border-gray-100 text-center">
+                                 <div className="flex justify-center gap-2 opacity-100 transition-opacity">
+                                    <button 
+                                      onClick={() => { setEditingRecord(record); setShowModal(true); }}
+                                      className="w-10 h-10 bg-gray-50 text-gray-400 hover:bg-blue-600 hover:text-white rounded-xl transition-all flex items-center justify-center"
+                                    >
+                                       <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={async () => {
+                                        if (confirm('Silinsin?')) await deleteAction(record.id, targetFarmId);
+                                      }}
+                                      className="w-10 h-10 bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-xl transition-all flex items-center justify-center"
+                                    >
+                                       <Trash2 className="w-4 h-4" />
+                                    </button>
+                                 </div>
+                              </td>
+                            </tr>
+                          ))}
+                          
+                          {totalPages > 1 && (
+                            <tr>
+                              <td colSpan={6} className="py-8">
+                                <div className="flex justify-center items-center gap-2">
+                                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                                    <button 
+                                      key={p} 
+                                      onClick={() => setCurrentPage(p)}
+                                      className={`w-10 h-10 rounded-xl font-black text-sm transition-all ${currentPage === p ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+                                    >
+                                      {p}
+                                    </button>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })()}
                   </tbody>
                </table>
             </div>
@@ -272,9 +303,9 @@ export default function MilkClient({
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md z-[100] flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
           <form action={async (formData) => {
             if (editingRecord) {
-              await updateAction(editingRecord.id, formData, targetUserId);
+              await updateAction(editingRecord.id, formData, targetFarmId);
             } else {
-              await addAction(formData, targetUserId);
+              await addAction(formData, targetFarmId);
             }
             setShowModal(false);
           }} className="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[48px] shadow-2xl w-full max-w-xl space-y-6 md:space-y-10 relative">

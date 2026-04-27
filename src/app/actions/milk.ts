@@ -4,28 +4,14 @@ import prisma from '@/lib/prisma'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 
-async function getSession() {
-  const session = await auth()
-  if (!session?.user?.id) {
-    throw new Error("Daxil olmayıbsınız")
-  }
-  return session
-}
+import { getFarmId } from '@/lib/auth-utils'
 
-async function getTargetUserId(targetUserId?: string) {
-  const session = await getSession()
-  if (targetUserId && session.user.role === 'ADMIN') {
-    return targetUserId
-  }
-  return session.user.id
-}
-
-export async function getMilkRecords(targetUserId?: string) {
+export async function getMilkRecords(targetFarmId?: string) {
   try {
-    const userIdToUse = await getTargetUserId(targetUserId)
+    const farmIdToUse = await getFarmId(targetFarmId)
     return await prisma.milkRecord.findMany({
       where: { 
-        animal: { userId: userIdToUse } 
+        animal: { farmId: farmIdToUse } 
       },
       orderBy: { date: 'desc' },
       include: {
@@ -38,8 +24,8 @@ export async function getMilkRecords(targetUserId?: string) {
   }
 }
 
-export async function addMilkRecord(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addMilkRecord(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   const animalId = formData.get('animalId') as string
   const dateStr = formData.get('date') as string
@@ -61,8 +47,8 @@ export async function addMilkRecord(formData: FormData, targetUserId?: string) {
   revalidatePath('/herd')
 }
 
-export async function updateMilkRecord(id: string, formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateMilkRecord(id: string, formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   const dateStr = formData.get('date') as string
   const yieldMorning = parseFloat(formData.get('yieldMorning') as string || '0')
@@ -72,7 +58,7 @@ export async function updateMilkRecord(id: string, formData: FormData, targetUse
   await prisma.milkRecord.update({
     where: { 
       id,
-      animal: { userId: userIdToUse }
+      animal: { farmId: farmIdToUse }
     },
     data: {
       date: new Date(dateStr),
@@ -86,13 +72,13 @@ export async function updateMilkRecord(id: string, formData: FormData, targetUse
   revalidatePath('/herd')
 }
 
-export async function deleteMilkRecord(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function deleteMilkRecord(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   await prisma.milkRecord.delete({
     where: { 
       id,
-      animal: { userId: userIdToUse }
+      animal: { farmId: farmIdToUse }
     }
   })
 

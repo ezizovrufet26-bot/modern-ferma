@@ -4,20 +4,10 @@ import prisma from '@/lib/prisma'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 
-async function getSession() {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error("Daxil olmayıbsınız")
-  return session
-}
+import { getFarmId } from '@/lib/auth-utils'
 
-async function getTargetUserId(targetUserId?: string) {
-  const session = await getSession()
-  if (targetUserId && session.user.role === 'ADMIN') return targetUserId
-  return session.user.id
-}
-
-export async function addHealthRecord(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addHealthRecord(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalId = formData.get('animalId') as string
   const dateStr = formData.get('date') as string
   const disease = formData.get('disease') as string
@@ -44,8 +34,8 @@ export async function addHealthRecord(formData: FormData, targetUserId?: string)
   revalidatePath('/herd')
 }
 
-export async function updateHealthRecord(id: string, formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateHealthRecord(id: string, formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const dateStr = formData.get('date') as string
   const disease = formData.get('disease') as string
   const description = formData.get('description') as string
@@ -55,7 +45,7 @@ export async function updateHealthRecord(id: string, formData: FormData, targetU
   const costStr = formData.get('cost') as string
 
   await prisma.healthRecord.update({
-    where: { id, animal: { userId: userIdToUse } },
+    where: { id, animal: { farmId: farmIdToUse } },
     data: {
       date: new Date(dateStr),
       disease: disease || null,
@@ -70,16 +60,16 @@ export async function updateHealthRecord(id: string, formData: FormData, targetU
   revalidatePath('/herd')
 }
 
-export async function deleteHealthRecord(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function deleteHealthRecord(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   await prisma.healthRecord.delete({ 
-    where: { id, animal: { userId: userIdToUse } } 
+    where: { id, animal: { farmId: farmIdToUse } } 
   })
   revalidatePath('/herd')
 }
 
-export async function addVaccineRecord(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addVaccineRecord(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalId = formData.get('animalId') as string
   const vaccineName = formData.get('vaccineName') as string
   const dateStr = formData.get('date') as string
@@ -101,8 +91,8 @@ export async function addVaccineRecord(formData: FormData, targetUserId?: string
   revalidatePath('/herd')
 }
 
-export async function updateVaccineRecord(id: string, formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateVaccineRecord(id: string, formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const vaccineName = formData.get('vaccineName') as string
   const dateStr = formData.get('date') as string
   const nextDueDateStr = formData.get('nextDueDate') as string
@@ -110,7 +100,7 @@ export async function updateVaccineRecord(id: string, formData: FormData, target
   const notes = formData.get('notes') as string
 
   await prisma.vaccineRecord.update({
-    where: { id, animal: { userId: userIdToUse } },
+    where: { id, animal: { farmId: farmIdToUse } },
     data: {
       vaccineName,
       date: new Date(dateStr),
@@ -122,16 +112,16 @@ export async function updateVaccineRecord(id: string, formData: FormData, target
   revalidatePath('/herd')
 }
 
-export async function deleteVaccineRecord(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function deleteVaccineRecord(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   await prisma.vaccineRecord.delete({ 
-    where: { id, animal: { userId: userIdToUse } } 
+    where: { id, animal: { farmId: farmIdToUse } } 
   })
   revalidatePath('/herd')
 }
 
-export async function addMassVaccineRecord(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addMassVaccineRecord(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalIds = JSON.parse(formData.get('animalIds') as string);
   const vaccineName = formData.get('vaccineName') as string;
   const dateStr = formData.get('date') as string;
@@ -153,10 +143,10 @@ export async function addMassVaccineRecord(formData: FormData, targetUserId?: st
   revalidatePath('/herd');
 }
 
-export async function updateAnimalGroup(animalId: string, groupName: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateAnimalGroup(animalId: string, groupName: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   await prisma.animal.update({
-    where: { id: animalId, userId: userIdToUse },
+    where: { id: animalId, farmId: farmIdToUse },
     data: { groupName }
   })
   revalidatePath('/herd')

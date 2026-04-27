@@ -7,7 +7,6 @@ import { Home, List, Stethoscope, Droplets, Wallet, Settings, LayoutDashboard, D
 import { signOut } from "next-auth/react";
 
 export default function Sidebar() {
-  const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
   // Hide sidebar on auth pages
@@ -26,23 +25,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Toggle Button */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 right-4 z-[100] md:hidden w-12 h-12 bg-red-600 rounded-xl shadow-xl shadow-red-600/30 flex items-center justify-center text-white border border-white/20 active:scale-95 transition-all"
-      >
-        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
-
-      {/* Backdrop for mobile */}
-      {isOpen && (
-        <div 
-          onClick={() => setIsOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] md:hidden"
-        />
-      )}
-
-      <aside className={`fixed md:sticky top-0 left-0 w-80 h-screen bg-[#020617] text-white flex flex-col shadow-2xl z-[90] border-r border-white/5 transition-transform duration-500 ease-out ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`hidden md:sticky top-0 left-0 w-80 h-screen bg-[#020617] text-white md:flex flex-col shadow-2xl z-[90] border-r border-white/5`}>
         <div className="p-10">
           <div className="flex items-center gap-4 mb-3">
             <div className="w-12 h-12 relative">
@@ -65,7 +48,6 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 px-5 py-3.5 text-gray-400 rounded-2xl hover:bg-white/5 hover:text-white transition-all duration-300 group"
               >
                 <Icon className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />

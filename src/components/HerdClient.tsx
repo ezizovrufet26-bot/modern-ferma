@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, Trash2, Edit, Activity, Bell, Calendar, Image as ImageIcon, Milk, Info, Check, X, Filter, Syringe, Users, ShieldCheck, Database, Upload, FileDown, Loader2, ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Search, Plus, Trash2, Edit, Activity, Bell, Calendar, Image as ImageIcon, Milk, Info, Check, X, Filter, Syringe, QrCode, ShieldCheck, Database, Upload, FileDown, Loader2, ArrowLeft, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
@@ -9,6 +10,7 @@ import { getAnimalGroup, calculateAge, type Animal } from '@/lib/herd-utils';
 import PedigreeTree from './PedigreeTree';
 import { addWeightRecord, deleteWeightRecord } from '@/app/actions/weight';
 import { importAnimalsFromData } from '@/app/actions/herd';
+import { QRCodeSVG } from 'qrcode.react';
 
 
 export default function HerdClient({ 
@@ -27,30 +29,32 @@ export default function HerdClient({
   updateVaccineAction,
   deleteVaccineAction,
   addMassVaccineAction,
+  seedDemoDataAction,
   updateGroupAction,
   initialGroup,
   staffList = [],
-  targetUserId 
+  targetFarmId 
 }: { 
   animals: Animal[], 
-  deleteAction: (id: string, targetUserId?: string) => Promise<void>, 
-  saveAIAction?: (formData: FormData, targetUserId?: string) => Promise<void>, 
-  updateAIAction?: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
-  deleteAIAction?: (id: string, targetUserId?: string) => Promise<void>,
-  saveCalvingAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
-  addHealthAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
-  updateHealthAction?: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
-  deleteHealthAction?: (id: string, targetUserId?: string) => Promise<void>,
-  addVaccineAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
-  updateVaccineAction?: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
-  deleteVaccineAction?: (id: string, targetUserId?: string) => Promise<void>,
-  addMassVaccineAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
-  updateGroupAction?: (id: string, groupName: string, targetUserId?: string) => Promise<void>,
+  deleteAction: (id: string, targetFarmId?: string) => Promise<void>, 
+  saveAIAction?: (formData: FormData, targetFarmId?: string) => Promise<void>, 
+  updateAIAction?: (id: string, formData: FormData, targetFarmId?: string) => Promise<void>,
+  deleteAIAction?: (id: string, targetFarmId?: string) => Promise<void>,
+  saveCalvingAction?: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  addHealthAction?: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  updateHealthAction?: (id: string, formData: FormData, targetFarmId?: string) => Promise<void>,
+  deleteHealthAction?: (id: string, targetFarmId?: string) => Promise<void>,
+  addVaccineAction?: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  updateVaccineAction?: (id: string, formData: FormData, targetFarmId?: string) => Promise<void>,
+  deleteVaccineAction?: (id: string, targetFarmId?: string) => Promise<void>,
+  addMassVaccineAction?: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  seedDemoDataAction?: (targetFarmId?: string) => Promise<{ success: boolean, count?: number, message?: string }>,
+  updateGroupAction?: (id: string, groupName: string, targetFarmId?: string) => Promise<void>,
   initialGroup?: string | null,
   staffList?: any[],
-  targetUserId?: string,
-  savePDAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
-  saveDryAction?: (formData: FormData, targetUserId?: string) => Promise<void>,
+  targetFarmId?: string,
+  savePDAction?: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  saveDryAction?: (formData: FormData, targetFarmId?: string) => Promise<void>,
 }) {
   const searchParams = useSearchParams();
   const urlGroup = searchParams.get('group');
@@ -65,6 +69,9 @@ export default function HerdClient({
   
   const [massVaccineGroup, setMassVaccineGroup] = useState<string>('SAĞMAL 1');
   const [excludedAnimals, setExcludedAnimals] = useState<string[]>([]);
+  const [showQR, setShowQR] = useState(false);
+  const [herdPage, setHerdPage] = useState(1);
+  const itemsPerPage = 8;
   
   const selectedAnimal = animals.find(a => a.id === selectedAnimalId) || (animals.length > 0 ? animals[0] : null);
 
@@ -124,6 +131,10 @@ export default function HerdClient({
     if (urlGroup) setFilterGroup(urlGroup);
   }, [urlGroup]);
 
+  useEffect(() => {
+    setHerdPage(1);
+  }, [filterGroup, searchTerm]);
+
   // Auto-select first animal if none selected
   useEffect(() => {
     if (!selectedAnimalId && filteredAnimals.length > 0) {
@@ -153,7 +164,7 @@ export default function HerdClient({
           console.log("Excel data parsed:", data);
 
           if (data.length > 0) {
-            const res = await importAnimalsFromData(data, targetUserId || undefined);
+            const res = await importAnimalsFromData(data, targetFarmId || undefined);
             if (res.success) {
               alert(`${res.importedCount} heyvan uğurla əlavə edildi/yeniləndi.`);
               window.location.reload(); 
@@ -199,15 +210,79 @@ export default function HerdClient({
     return 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Cow_female_black_white.jpg';
   };
 
+  const groups = ['YENİ DOĞANLAR', 'SAĞMAL 1', 'SAĞMAL 2', 'QURUYA ÇIXANLAR', 'DOĞUMA 1 AY QALMIŞLAR', 'BUZOVLAR', 'DANALAR', 'DÜYƏLƏR'];
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen lg:h-[calc(100vh-2rem)] gap-4 lg:gap-8 p-4 lg:p-8 animate-in overflow-hidden relative">
+    <div className="flex flex-col lg:flex-row h-[100dvh] lg:h-[calc(100vh-2rem)] gap-4 lg:gap-8 p-4 pb-24 lg:pb-8 lg:p-8 animate-in overflow-hidden relative">
+      
+      {/* MOBILE PERSISTENT TOP ACTIONS & GROUPS */}
+      <div className="lg:hidden flex flex-col gap-4 mb-2 shrink-0">
+        <div className="flex justify-between items-center px-1">
+          <h2 className="font-black text-gray-900 text-2xl tracking-tight">Sürü <span className="text-blue-600">İdarəetmə</span></h2>
+          <div className="flex items-center gap-2">
+            <label className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl cursor-pointer hover:bg-emerald-100 transition-all border border-emerald-100">
+              <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleExcelImport} disabled={isImporting} />
+              <FileDown className={`w-5 h-5 ${isImporting ? 'animate-bounce' : ''}`} />
+            </label>
+            <button 
+              onClick={async () => {
+                if(confirm('75 heyvanlıq demo məlumat yüklənsin?')) {
+                  const res = await seedDemoDataAction?.(targetFarmId);
+                  if (res?.success) alert(`${res.count} heyvan uğurla yükləndi!`);
+                  else alert(res?.message || 'Xəta baş verdi');
+                }
+              }}
+              className="bg-amber-500 text-white p-3 rounded-2xl shadow-lg shadow-amber-600/20 active:scale-95 transition-all"
+              title="Demo Yüklə"
+            >
+              <Database className="w-5 h-5" />
+            </button>
+            <Link 
+              href={targetFarmId ? `/herd/new?userId=${targetFarmId}` : "/herd/new"}
+              className="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Horizontal Scroll Groups for Mobile */}
+        <div className="flex overflow-x-auto no-scrollbar gap-2 pb-2 -mx-1 px-1">
+          <button 
+            onClick={() => setFilterGroup(null)}
+            className={`whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${!filterGroup ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 ring-4 ring-blue-50' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'}`}
+          >
+            Hamsı
+          </button>
+          {[...groups, 'PREGNANT', 'EMPTY', 'SICK'].map(group => (
+            <button 
+              key={group}
+              onClick={() => setFilterGroup(group)}
+              className={`whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${filterGroup === group ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 ring-4 ring-blue-50' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'}`}
+            >
+              {group === 'PREGNANT' ? 'Hamilələr' : group === 'EMPTY' ? 'Boşlar' : group === 'SICK' ? 'Xəstələr' : group}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Floating Action Button for Mobile - Keep for quick access when scrolling list */}
+      {!showForm && (
+        <div className="lg:hidden fixed bottom-24 right-6 z-[60]">
+          <Link 
+            href={targetFarmId ? `/herd/new?userId=${targetFarmId}` : "/herd/new"}
+            className="w-16 h-16 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center transform active:scale-95 transition-transform border-4 border-white"
+          >
+            <Plus className="w-8 h-8" />
+          </Link>
+        </div>
+      )}
       
       {/* LEFT PANE: Master List */}
       <div className={`w-full lg:w-[420px] flex-col glass-panel rounded-[32px] shadow-2xl shadow-blue-500/5 overflow-hidden shrink-0 border border-white/50 ${selectedAnimalId ? 'hidden lg:flex' : 'flex'}`}>
         <div className="p-6 border-b border-gray-100/50 bg-white/30 backdrop-blur-md">
-          <div className="flex justify-between items-center mb-6 lg:mb-6">
-            <h2 className="font-black text-gray-900 text-2xl tracking-tight hidden lg:block">Sürü <span className="text-blue-600">Siyahısı</span></h2>
+          <div className="hidden lg:flex justify-between items-center mb-6 lg:mb-6">
+            <h2 className="font-black text-gray-900 text-xl lg:text-2xl tracking-tight">Sürü <span className="text-blue-600">Siyahısı</span></h2>
             <div className="lg:hidden w-10" /> {/* Spacer for back button on mobile */}
             <div className="flex items-center gap-2">
                <label className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl cursor-pointer hover:bg-emerald-100 transition-all border border-emerald-100">
@@ -221,7 +296,7 @@ export default function HerdClient({
                >
                  <Syringe className="w-5 h-5" />
                </button>
-               <Link href={targetUserId ? `/herd/new?userId=${targetUserId}` : "/herd/new"} className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl transition-all shadow-lg shadow-blue-600/20 transform hover:scale-105 active:scale-95">
+               <Link href={targetFarmId ? `/herd/new?userId=${targetFarmId}` : "/herd/new"} className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl transition-all shadow-lg shadow-blue-600/20 transform hover:scale-105 active:scale-95">
                  <Plus className="w-5 h-5" />
                </Link>
             </div>
@@ -236,7 +311,7 @@ export default function HerdClient({
               className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm font-medium"
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 mt-6 scrollbar-hide">
+          <div className="hidden lg:flex gap-2 overflow-x-auto pb-2 mt-6 scrollbar-hide">
             <button 
               onClick={() => setFilterGroup(null)}
               className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${!filterGroup ? 'bg-gray-900 text-white border-gray-900 shadow-lg' : 'bg-white/50 text-gray-500 border-gray-200 hover:border-gray-300'}`}
@@ -264,63 +339,86 @@ export default function HerdClient({
               <p className="text-gray-500 font-bold">Məlumat tapılmadı</p>
             </div>
           ) : (
-            filteredAnimals.map((animal) => (
-              <div 
-                key={animal.id} 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedAnimalId(animal.id);
-                }}
-                className={`group p-4 rounded-3xl cursor-pointer transition-all duration-300 border relative overflow-hidden ${
-                  selectedAnimalId === animal.id 
-                  ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-600/20 scale-[1.02] z-10' 
-                  : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-1'
-                }`}
-              >
-                <div className="flex items-center gap-4 relative z-10">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-inner ${
-                    selectedAnimalId === animal.id ? 'bg-white/20 text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'
-                  }`}>
-                    {animal.tagNumber.slice(-2)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <p className={`font-black text-base truncate ${selectedAnimalId === animal.id ? 'text-white' : 'text-gray-900'}`}>
-                        {animal.tagNumber}
-                      </p>
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider border ${
-                        selectedAnimalId === animal.id ? 'bg-white/20 border-white/30 text-white' : getStageColor(getAnimalGroup(animal))
-                      }`}>
-                        {getAnimalGroup(animal)}
-                      </span>
+            <>
+              {filteredAnimals.slice((herdPage - 1) * itemsPerPage, herdPage * itemsPerPage).map((animal) => (
+                <div 
+                  key={animal.id} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedAnimalId(animal.id);
+                  }}
+                  className={`group p-4 rounded-3xl cursor-pointer transition-all duration-300 border relative overflow-hidden ${
+                    selectedAnimalId === animal.id 
+                    ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-600/20 scale-[1.02] z-10' 
+                    : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-1'
+                  }`}
+                >
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-inner ${
+                      selectedAnimalId === animal.id ? 'bg-white/20 text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'
+                    }`}>
+                      {animal.tagNumber.slice(-2)}
                     </div>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <p className={`text-xs font-bold flex items-center gap-1.5 ${selectedAnimalId === animal.id ? 'text-blue-100' : 'text-gray-400'}`}>
-                        <Calendar className="w-3.5 h-3.5" /> {calculateAge(animal.birthDate)}
-                      </p>
-                      <div className={`w-1 h-1 rounded-full ${selectedAnimalId === animal.id ? 'bg-white/30' : 'bg-gray-200'}`} />
-                      <p className={`text-xs font-bold ${selectedAnimalId === animal.id ? 'text-blue-100' : 'text-gray-400'}`}>
-                        {animal.breed || 'Cins yoxdur'}
-                      </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className={`font-black text-base truncate ${selectedAnimalId === animal.id ? 'text-white' : 'text-gray-900'}`}>
+                          {animal.tagNumber}
+                        </p>
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider border ${
+                          selectedAnimalId === animal.id ? 'bg-white/20 border-white/30 text-white' : getStageColor(getAnimalGroup(animal))
+                        }`}>
+                          {getAnimalGroup(animal)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <p className={`text-xs font-bold flex items-center gap-1.5 ${selectedAnimalId === animal.id ? 'text-blue-100' : 'text-gray-400'}`}>
+                          <Calendar className="w-3.5 h-3.5" /> {calculateAge(animal.birthDate)}
+                        </p>
+                        <div className={`w-1 h-1 rounded-full ${selectedAnimalId === animal.id ? 'bg-white/30' : 'bg-gray-200'}`} />
+                        <p className={`text-xs font-bold ${selectedAnimalId === animal.id ? 'text-blue-100' : 'text-gray-400'}`}>
+                          {animal.breed || 'Cins yoxdur'}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+              
+              {/* PAGINATION CONTROLS */}
+              {Math.ceil(filteredAnimals.length / itemsPerPage) > 1 && (
+                <div className="flex justify-center items-center gap-2 py-4">
+                  {Array.from({ length: Math.ceil(filteredAnimals.length / itemsPerPage) }, (_, i) => i + 1).map(p => (
+                    <button 
+                      key={p} 
+                      onClick={() => setHerdPage(p)}
+                      className={`w-8 h-8 rounded-lg font-black text-[10px] transition-all ${herdPage === p ? 'bg-blue-600 text-white' : 'bg-white text-gray-400 border border-gray-100'}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
       {/* RIGHT PANE: Details */}
       <div className={`flex-1 glass-panel rounded-[32px] lg:rounded-[40px] shadow-2xl shadow-blue-500/5 overflow-hidden border border-white/50 relative flex-col ${selectedAnimalId ? 'flex' : 'hidden lg:flex'}`}>
-        {/* Mobile Back Button */}
+        {/* Mobile Header for Detail View */}
         {selectedAnimalId && (
-          <button 
-            onClick={() => setSelectedAnimalId(null)}
-            className="lg:hidden absolute top-6 left-6 z-50 w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/30"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
+          <div className="lg:hidden p-4 bg-white border-b flex items-center justify-between z-[50]">
+            <button 
+              onClick={() => setSelectedAnimalId(null)}
+              className="flex items-center gap-2 text-blue-600 font-black text-sm uppercase tracking-widest"
+            >
+              <ArrowLeft className="w-5 h-5" /> Geri
+            </button>
+            <div className="text-right">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Seçilən</p>
+              <p className="text-sm font-black text-gray-900">{selectedAnimal?.tagNumber}</p>
+            </div>
+          </div>
         )}
         {!selectedAnimal ? (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center animate-in">
@@ -332,9 +430,9 @@ export default function HerdClient({
              <p className="text-gray-500 mt-3 max-w-xs font-medium">Məlumatları görmək və idarə etmək üçün soldakı siyahıdan bir heyvan seçin.</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar pb-32">
             {/* HERO HEADER */}
-            <div className="relative h-[320px] overflow-hidden group">
+            <div className="relative h-[220px] lg:h-[320px] overflow-hidden group">
                <img src={getAnimalImage(getAnimalGroup(selectedAnimal))} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" alt="Animal" />
                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/20 to-transparent" />
                
@@ -361,8 +459,15 @@ export default function HerdClient({
                  </div>
                  
                  <div className="flex gap-4 mb-1">
+                     <button 
+                       onClick={() => setShowQR(true)}
+                       className="w-16 h-16 bg-white hover:bg-slate-800 text-slate-800 hover:text-white rounded-2xl border border-white/20 transition-all flex items-center justify-center group shadow-2xl"
+                       title="QR Passport"
+                     >
+                        <QrCode className="w-7 h-7 group-active:scale-90" />
+                     </button>
                     <Link 
-                      href={targetUserId ? `/herd/edit/${selectedAnimal.id}?userId=${targetUserId}` : `/herd/edit/${selectedAnimal.id}`} 
+                      href={targetFarmId ? `/herd/edit/${selectedAnimal.id}?userId=${targetFarmId}` : `/herd/edit/${selectedAnimal.id}`} 
                       className="w-16 h-16 bg-white hover:bg-blue-600 text-blue-600 hover:text-white rounded-2xl border border-white/20 transition-all flex items-center justify-center group shadow-2xl"
                       title="Düzəliş et"
                     >
@@ -370,7 +475,7 @@ export default function HerdClient({
                     </Link>
                     <form action={async () => {
                       if(confirm('Əminsiniz?')) {
-                         await deleteAction(selectedAnimal.id, targetUserId);
+                         await deleteAction(selectedAnimal.id, targetFarmId);
                          setSelectedAnimalId(null);
                       }
                     }}>
@@ -560,7 +665,7 @@ export default function HerdClient({
                                 <form action={async (formData) => {
                                   const weight = parseFloat(formData.get('weight') as string);
                                   const note = formData.get('note') as string;
-                                  if (selectedAnimal) await addWeightRecord(selectedAnimal.id, weight, note, targetUserId);
+                                  if (selectedAnimal) await addWeightRecord(selectedAnimal.id, weight, note, targetFarmId);
                                 }} className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex flex-col md:flex-row gap-4 items-end">
                                    <div className="flex-1 space-y-2 w-full">
                                       <label className="text-[10px] font-black text-amber-600 uppercase ml-1">Yeni Çəki (kq)</label>
@@ -585,7 +690,7 @@ export default function HerdClient({
                                         <div className="flex items-center gap-3">
                                           {record.note && <span className="text-[10px] font-bold text-gray-500 italic bg-gray-50 px-3 py-1 rounded-lg">"{record.note}"</span>}
                                           <button 
-                                            onClick={async () => { if(confirm('Silsin?')) await deleteWeightRecord(record.id, targetUserId); }}
+                                            onClick={async () => { if(confirm('Silsin?')) await deleteWeightRecord(record.id, targetFarmId); }}
                                             className="p-2 text-gray-300 hover:text-red-500 transition-colors"
                                           >
                                             <Trash2 className="w-4 h-4" />
@@ -764,7 +869,7 @@ export default function HerdClient({
                                               <Edit className="w-3.5 h-3.5" />
                                             </button>
                                             <button 
-                                              onClick={async () => { if(confirm('Silsin?')) await deleteAIAction?.(record.id, targetUserId); }}
+                                              onClick={async () => { if(confirm('Silsin?')) await deleteAIAction?.(record.id, targetFarmId); }}
                                               className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
                                             >
                                               <Trash2 className="w-3.5 h-3.5" />
@@ -844,7 +949,7 @@ export default function HerdClient({
                                        </div>
                                        <div className="flex gap-2">
                                           <button onClick={() => { setEditingRecord(record); setShowForm('health'); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
-                                          <button onClick={async () => { if(confirm('Silsin?')) await deleteHealthAction?.(record.id, targetUserId); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                          <button onClick={async () => { if(confirm('Silsin?')) await deleteHealthAction?.(record.id, targetFarmId); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                                        </div>
                                      </div>
                                      <p className="text-xs font-bold text-gray-500 mt-2">Dərmanlar: <span className="text-gray-900 font-black">{record.medications || '-'}</span></p>
@@ -867,7 +972,7 @@ export default function HerdClient({
                                           </div>
                                           <div className="flex gap-2">
                                              <button onClick={() => { setEditingRecord(record); setShowForm('vaccine'); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
-                                             <button onClick={async () => { if(confirm('Silsin?')) await deleteVaccineAction?.(record.id, targetUserId); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                             <button onClick={async () => { if(confirm('Silsin?')) await deleteVaccineAction?.(record.id, targetFarmId); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                                           </div>
                                        </div>
                                    </div>
@@ -899,9 +1004,9 @@ export default function HerdClient({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <form action={async (formData) => {
             if (editingRecord && updateAIAction) {
-              await updateAIAction(editingRecord.id, formData, targetUserId);
+              await updateAIAction(editingRecord.id, formData, targetFarmId);
             } else if (saveAIAction) {
-              await saveAIAction(formData, targetUserId);
+              await saveAIAction(formData, targetFarmId);
             }
             setShowForm('none');
             setEditingRecord(null);
@@ -955,7 +1060,7 @@ export default function HerdClient({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <form action={async (formData) => {
             if (saveCalvingAction) {
-              await saveCalvingAction(formData, targetUserId);
+              await saveCalvingAction(formData, targetFarmId);
               setShowForm('none');
             }
           }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
@@ -1016,9 +1121,9 @@ export default function HerdClient({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
           <form action={async (formData) => {
             if (editingRecord) {
-              await updateHealthAction?.(editingRecord.id, formData, targetUserId);
+              await updateHealthAction?.(editingRecord.id, formData, targetFarmId);
             } else {
-              await addHealthAction?.(formData, targetUserId);
+              await addHealthAction?.(formData, targetFarmId);
             }
             setShowForm('none');
           }} className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-2xl w-full max-w-2xl space-y-6 md:space-y-8 relative">
@@ -1074,9 +1179,9 @@ export default function HerdClient({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
           <form action={async (formData) => {
             if (editingRecord && updateVaccineAction) {
-              await updateVaccineAction(editingRecord.id, formData, targetUserId);
+              await updateVaccineAction(editingRecord.id, formData, targetFarmId);
             } else if (addVaccineAction) {
-              await addVaccineAction(formData, targetUserId);
+              await addVaccineAction(formData, targetFarmId);
             }
             setShowForm('none');
             setEditingRecord(null);
@@ -1124,7 +1229,7 @@ export default function HerdClient({
       {showForm === 'pd' && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <form action={async (formData) => {
-            await savePDAction?.(formData, targetUserId);
+            await savePDAction?.(formData, targetFarmId);
             setShowForm('none');
           }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
             <div className="flex justify-between items-center">
@@ -1167,7 +1272,7 @@ export default function HerdClient({
       {showForm === 'dry' && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <form action={async (formData) => {
-            await saveDryAction?.(formData, targetUserId);
+            await saveDryAction?.(formData, targetFarmId);
             setShowForm('none');
           }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl space-y-8 animate-in zoom-in-95">
             <div className="flex justify-between items-center">
@@ -1206,7 +1311,7 @@ export default function HerdClient({
           <form action={async (formData) => {
             const animalsInGroup = animals.filter(a => getAnimalGroup(a) === massVaccineGroup && !excludedAnimals.includes(a.id));
             formData.set('animalIds', JSON.stringify(animalsInGroup.map(a => a.id)));
-            await addMassVaccineAction?.(formData, targetUserId);
+            await addMassVaccineAction?.(formData, targetFarmId);
             setShowForm('none');
           }} className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-2xl space-y-8 animate-in zoom-in-95">
             <div className="flex justify-between items-center">
@@ -1280,6 +1385,92 @@ export default function HerdClient({
               <button type="button" onClick={() => setShowForm('none')} className="px-10 py-5 bg-gray-50 text-gray-500 rounded-3xl text-sm font-black hover:bg-gray-100 transition-all border border-gray-100">Ləğv Et</button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* QR PASSPORT MODAL - PREMIUM DESIGN */}
+      {showQR && selectedAnimal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xl animate-in fade-in duration-300">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[48px] shadow-2xl w-full max-w-sm overflow-hidden relative border border-white/20"
+          >
+            {/* Header with Pattern */}
+            <div className="h-24 bg-gradient-to-br from-slate-800 to-slate-900 relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+              <button onClick={() => setShowQR(false)} className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-10 pb-10 -mt-12 relative z-10 text-center">
+              <div className="inline-flex p-4 bg-white rounded-3xl shadow-2xl mb-6 ring-8 ring-gray-50/50">
+                <QRCodeSVG 
+                  value={`${window.location.origin}/herd/${selectedAnimal.id}`} 
+                  size={160}
+                  level="H"
+                  includeMargin={false}
+                />
+              </div>
+              
+              <div className="space-y-1 mb-8">
+                <h3 className="text-2xl font-black text-gray-900 tracking-tight">{selectedAnimal.tagNumber}</h3>
+                <p className="text-blue-600 text-xs font-black uppercase tracking-widest">{selectedAnimal.name || 'RƏQƏMSAL PASPORT'}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100">
+                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Cins</p>
+                   <p className="text-xs font-bold text-gray-900 truncate">{selectedAnimal.breed || '-'}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100">
+                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Doğum</p>
+                   <p className="text-xs font-bold text-gray-900">{selectedAnimal.birthDate ? new Date(selectedAnimal.birthDate).toLocaleDateString('az-AZ') : '-'}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => window.print()}
+                  className="w-full bg-slate-900 text-white py-5 rounded-[24px] font-black text-sm shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-3"
+                >
+                  <FileDown className="w-5 h-5" /> Pasportu Çap Et
+                </button>
+                <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em]">Heyvanın tam tarixçəsi üçün skan edin</p>
+              </div>
+            </div>
+
+            {/* PRINT ONLY SECTION - Optimized for physical card */}
+            <div className="hidden print:block fixed inset-0 bg-white z-[999] p-10">
+               <div className="border-4 border-slate-900 rounded-[40px] p-10 flex flex-col items-center text-center max-w-sm mx-auto">
+                  <h1 className="text-3xl font-black mb-2">MODERN FERMA</h1>
+                  <p className="text-xs font-bold text-gray-500 mb-8 uppercase tracking-widest">Heyvan Pasportu</p>
+                  
+                  <div className="border-2 border-gray-100 p-6 rounded-3xl mb-8">
+                    <QRCodeSVG value={`${window.location.origin}/herd/${selectedAnimal.id}`} size={200} />
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase">Bırka Nömrəsi</p>
+                      <p className="text-3xl font-black">{selectedAnimal.tagNumber}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-8">
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase">Cins</p>
+                        <p className="text-base font-bold">{selectedAnimal.breed}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase">Doğum Tarixi</p>
+                        <p className="text-base font-bold">{selectedAnimal.birthDate ? new Date(selectedAnimal.birthDate).toLocaleDateString('az-AZ') : '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-12 text-[10px] font-bold text-gray-300">Bu heyvan Modern Ferma sistemi tərəfindən qeydiyyata alınıb.</p>
+               </div>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

@@ -15,12 +15,12 @@ export default function StaffClient({
   initialStaff, 
   createAction, 
   deleteAction,
-  targetUserId 
+  targetFarmId 
 }: { 
   initialStaff: Staff[],
-  createAction: (formData: FormData, targetUserId?: string) => Promise<void>,
-  deleteAction: (id: string, targetUserId?: string) => Promise<void>,
-  targetUserId?: string
+  createAction: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  deleteAction: (id: string, targetFarmId?: string) => Promise<void>,
+  targetFarmId?: string
 }) {
   const [isPending, setIsPending] = useState(false);
 
@@ -40,7 +40,7 @@ export default function StaffClient({
             action={async (formData) => {
               setIsPending(true);
               try {
-                await createAction(formData, targetUserId);
+                await createAction(formData, targetFarmId);
               } finally {
                 setIsPending(false);
               }
@@ -109,7 +109,7 @@ export default function StaffClient({
                     <button 
                       onClick={async () => {
                         if (confirm("Bu işçini silmək istədiyinizə əminsiniz?")) {
-                           await deleteAction(staff.id, targetUserId);
+                           await deleteAction(staff.id, targetFarmId);
                         }
                       }}
                       className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"

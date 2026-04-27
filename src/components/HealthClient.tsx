@@ -19,19 +19,19 @@ export default function HealthClient({
   updateVaccineAction,
   deleteVaccineAction,
   addMassVaccineAction,
-  targetUserId 
+  targetFarmId 
 }: { 
   animals: any[],
   healthRecords: any[],
   vaccineRecords: any[],
-  addHealthAction: (formData: FormData, targetUserId?: string) => Promise<void>,
-  updateHealthAction: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
-  deleteHealthAction: (id: string, targetUserId?: string) => Promise<void>,
-  addVaccineAction: (formData: FormData, targetUserId?: string) => Promise<void>,
-  updateVaccineAction: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
-  deleteVaccineAction: (id: string, targetUserId?: string) => Promise<void>,
-  addMassVaccineAction: (formData: FormData, targetUserId?: string) => Promise<void>,
-  targetUserId?: string
+  addHealthAction: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  updateHealthAction: (id: string, formData: FormData, targetFarmId?: string) => Promise<void>,
+  deleteHealthAction: (id: string, targetFarmId?: string) => Promise<void>,
+  addVaccineAction: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  updateVaccineAction: (id: string, formData: FormData, targetFarmId?: string) => Promise<void>,
+  deleteVaccineAction: (id: string, targetFarmId?: string) => Promise<void>,
+  addMassVaccineAction: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  targetFarmId?: string
 }) {
   const [showForm, setShowForm] = useState<'none' | 'health' | 'vaccine' | 'mass_vaccine'>('none');
   const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -200,7 +200,7 @@ export default function HealthClient({
                               <p className="text-sm font-black text-gray-900">{new Date(record.date).toLocaleDateString('az-AZ')}</p>
                               <div className="flex gap-2 mt-2 justify-end">
                                  <button onClick={(e) => { e.stopPropagation(); setEditingRecord(record.items[0]); setShowForm('vaccine'); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all"><Edit className="w-4 h-4"/></button>
-                                 <button onClick={async (e) => { e.stopPropagation(); if(confirm('Bütün qrup üzrə silinsin?')) await Promise.all(record.items.map((i:any) => deleteVaccineAction(i.id, targetUserId))); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-4 h-4"/></button>
+                                 <button onClick={async (e) => { e.stopPropagation(); if(confirm('Bütün qrup üzrə silinsin?')) await Promise.all(record.items.map((i:any) => deleteVaccineAction(i.id, targetFarmId))); }} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"><Trash2 className="w-4 h-4"/></button>
                               </div>
                            </div>
                         </div>
@@ -210,7 +210,7 @@ export default function HealthClient({
                              {record.items.map((item: any) => (
                                <div key={item.id} className="bg-gray-50 p-3 rounded-2xl border border-gray-100 flex items-center justify-between group/item">
                                   <span className="text-xs font-black text-gray-700">{item.animal.tagNumber}</span>
-                                  <button onClick={() => deleteVaccineAction(item.id, targetUserId)} className="opacity-0 group-hover/item:opacity-100 text-red-400 hover:text-red-600 transition-all"><X className="w-3 h-3"/></button>
+                                  <button onClick={() => deleteVaccineAction(item.id, targetFarmId)} className="opacity-0 group-hover/item:opacity-100 text-red-400 hover:text-red-600 transition-all"><X className="w-3 h-3"/></button>
                                </div>
                              ))}
                           </div>
@@ -246,9 +246,11 @@ export default function HealthClient({
                               <button 
                                 onClick={async () => {
                                   if(confirm('Silinsin?')) {
-                                    record.entryType === 'HEALTH' 
-                                      ? await deleteHealthAction(record.id, targetUserId)
-                                      : await deleteVaccineAction(record.id, targetUserId);
+                                    if (record.entryType === 'HEALTH') {
+                                      await deleteHealthAction(record.id, targetFarmId);
+                                    } else {
+                                      await deleteVaccineAction(record.id, targetFarmId);
+                                    }
                                   }
                                 }}
                                 className="w-10 h-10 bg-gray-50 text-gray-400 hover:bg-red-600 hover:text-white rounded-xl transition-all flex items-center justify-center"
@@ -280,7 +282,11 @@ export default function HealthClient({
       {showForm === 'health' && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md z-[100] flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
           <form action={async (formData) => {
-            editingRecord ? await updateHealthAction(editingRecord.id, formData, targetUserId) : await addHealthAction(formData, targetUserId);
+            if (editingRecord) {
+              await updateHealthAction(editingRecord.id, formData, targetFarmId);
+            } else {
+              await addHealthAction(formData, targetFarmId);
+            }
             setShowForm('none');
           }} className="bg-white p-8 rounded-[48px] shadow-2xl w-full max-w-2xl space-y-8">
             <div className="flex justify-between items-center">
@@ -314,7 +320,7 @@ export default function HealthClient({
       {showForm === 'vaccine' && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md z-[100] flex items-start justify-center p-4 md:p-10 overflow-y-auto pt-10 md:pt-20">
           <form action={async (formData) => {
-            await updateVaccineAction(editingRecord.id, formData, targetUserId);
+            await updateVaccineAction(editingRecord.id, formData, targetFarmId);
             setShowForm('none');
           }} className="bg-white p-8 rounded-[48px] shadow-2xl w-full max-w-2xl space-y-8">
             <div className="flex justify-between items-center">
@@ -350,7 +356,7 @@ export default function HealthClient({
           <form action={async (formData) => {
             const animalsInGroup = animals.filter(a => getAnimalGroup(a) === massVaccineGroup && !excludedAnimals.includes(a.id));
             formData.set('animalIds', JSON.stringify(animalsInGroup.map(a => a.id)));
-            await addMassVaccineAction(formData, targetUserId);
+            await addMassVaccineAction(formData, targetFarmId);
             setShowForm('none');
           }} className="bg-white p-8 rounded-[48px] shadow-2xl w-full max-w-2xl space-y-8 relative">
             <div className="flex justify-between items-center">

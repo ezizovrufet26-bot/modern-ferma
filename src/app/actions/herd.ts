@@ -5,39 +5,24 @@ import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-async function getSession() {
-  const session = await auth()
-  if (!session?.user?.id) {
-    throw new Error("Daxil olmayıbsınız")
-  }
-  return session
-}
+import { getFarmId } from '@/lib/auth-utils'
 
-// Universal User ID Resolver for Super Admin
-async function getTargetUserId(targetUserId?: string) {
-  const session = await getSession()
-  if (targetUserId && session.user.role === 'ADMIN') {
-    return targetUserId
-  }
-  return session.user.id
-}
-
-export async function getAnimal(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function getAnimal(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   return await prisma.animal.findFirst({
-    where: { id, userId: userIdToUse },
+    where: { id, farmId: farmIdToUse },
     include: {
       calvingRecords: { orderBy: { date: 'desc' } }
     }
   })
 }
 
-export async function getAnimals(targetUserId?: string) {
+export async function getAnimals(targetFarmId?: string) {
   try {
-    const userIdToUse = await getTargetUserId(targetUserId)
+    const farmIdToUse = await getFarmId(targetFarmId)
 
     const animals = await prisma.animal.findMany({
-      where: { userId: userIdToUse },
+      where: { farmId: farmIdToUse },
       orderBy: { createdAt: 'desc' },
       include: {
         reproRecords: {
@@ -67,8 +52,8 @@ export async function getAnimals(targetUserId?: string) {
   }
 }
 
-export async function addAnimal(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addAnimal(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   const tagNumber = formData.get('tagNumber') as string
   const name = formData.get('name') as string
@@ -84,12 +69,12 @@ export async function addAnimal(formData: FormData, targetUserId?: string) {
   const lastCalvingDateStr = formData.get('lastCalvingDate') as string
   const calfTag = formData.get('calfTag') as string
 
-  let birthDate = birthDateStr ? new Date(birthDateStr) : null
+  const birthDate = birthDateStr ? new Date(birthDateStr) : null
   let motherId = null
 
   if (motherInput) {
     const mother = await prisma.animal.findFirst({
-      where: { tagNumber: motherInput, userId: userIdToUse }
+      where: { tagNumber: motherInput, farmId: farmIdToUse }
     })
     if (mother) motherId = mother.id
   }
@@ -105,7 +90,7 @@ export async function addAnimal(formData: FormData, targetUserId?: string) {
       birthDate,
       motherId,
       sireCode: sireCode || null,
-      userId: userIdToUse
+      farmId: farmIdToUse
     }
   })
 
@@ -124,7 +109,7 @@ export async function addAnimal(formData: FormData, targetUserId?: string) {
           breed: breed || null,
           stage: 'CALF',
           groupName: 'BUZOVLAR',
-          userId: userIdToUse
+          farmId: farmIdToUse
         }
       })
       calfId = calf.id
@@ -143,17 +128,17 @@ export async function addAnimal(formData: FormData, targetUserId?: string) {
   revalidatePath('/herd')
 }
 
-export async function deleteAnimal(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function deleteAnimal(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   await prisma.animal.delete({
-    where: { id, userId: userIdToUse }
+    where: { id, farmId: farmIdToUse }
   })
   revalidatePath('/herd')
 }
 
-export async function updateAnimal(id: string, formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateAnimal(id: string, formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   
   const data: any = {}
   const lastCalvingDateStr = formData.get('lastCalvingDate') as string
@@ -161,13 +146,13 @@ export async function updateAnimal(id: string, formData: FormData, targetUserId?
 
   formData.forEach((value, key) => {
     if (key === 'birthDate') data[key] = value ? new Date(value as string) : null
-    else if (key !== 'id' && key !== 'animalId' && key !== 'targetUserId' && key !== 'lastCalvingDate' && key !== 'calfTag') {
+    else if (key !== 'id' && key !== 'animalId' && key !== 'targetFarmId' && key !== 'lastCalvingDate' && key !== 'calfTag') {
        data[key] = value
     }
   })
 
   const updatedAnimal = await prisma.animal.update({
-    where: { id, userId: userIdToUse },
+    where: { id, farmId: farmIdToUse },
     data,
     include: { calvingRecords: true }
   })
@@ -181,7 +166,7 @@ export async function updateAnimal(id: string, formData: FormData, targetUserId?
       let calfId = null
       if (calfTag) {
         const calf = await prisma.animal.upsert({
-          where: { tagNumber_userId: { tagNumber: calfTag, userId: userIdToUse } },
+          where: { tagNumber_farmId: { tagNumber: calfTag, farmId: farmIdToUse } },
           update: { birthDate: calvingDate, motherId: id },
           create: {
             tagNumber: calfTag,
@@ -190,7 +175,7 @@ export async function updateAnimal(id: string, formData: FormData, targetUserId?
             motherId: id,
             stage: 'CALF',
             groupName: 'BUZOVLAR',
-            userId: userIdToUse
+            farmId: farmIdToUse
           }
         })
         calfId = calf.id
@@ -212,8 +197,8 @@ export async function updateAnimal(id: string, formData: FormData, targetUserId?
   revalidatePath('/herd')
 }
 
-export async function saveArtificialInsemination(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function saveArtificialInsemination(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalId = formData.get('animalId') as string;
   const dateStr = formData.get('inseminationDate') as string;
   const sireCode = formData.get('sireCode') as string;
@@ -245,14 +230,14 @@ export async function saveArtificialInsemination(formData: FormData, targetUserI
   revalidatePath('/herd');
 }
 
-export async function updateArtificialInsemination(id: string, formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateArtificialInsemination(id: string, formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const dateStr = formData.get('inseminationDate') as string;
   const sireCode = formData.get('sireCode') as string;
   const vetId = formData.get('vetId') as string;
 
   await prisma.reproductionRecord.update({
-    where: { id, animal: { userId: userIdToUse } },
+    where: { id, animal: { farmId: farmIdToUse } },
     data: {
       date: new Date(dateStr),
       vetId: vetId || null,
@@ -263,17 +248,17 @@ export async function updateArtificialInsemination(id: string, formData: FormDat
   revalidatePath('/herd');
 }
 
-export async function deleteArtificialInsemination(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
-  // Admin yoxlaması targetUserId vasitəsilə keçir
+export async function deleteArtificialInsemination(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
+  // Admin yoxlaması targetFarmId vasitəsilə keçir
   await prisma.reproductionRecord.delete({ 
-    where: { id, animal: { userId: userIdToUse } } 
+    where: { id, animal: { farmId: farmIdToUse } } 
   });
   revalidatePath('/herd');
 }
 
-export async function saveCalving(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function saveCalving(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const motherId = formData.get('motherId') as string;
   const dateStr = formData.get('calvingDate') as string;
   const calfTag = formData.get('calfTag') as string;
@@ -293,7 +278,7 @@ export async function saveCalving(formData: FormData, targetUserId?: string) {
         breed: calfBreed || null,
         stage: 'CALF',
         groupName: 'BUZOVLAR',
-        userId: userIdToUse
+        farmId: farmIdToUse
       }
     });
     calfId = calf.id;
@@ -322,8 +307,8 @@ export async function saveCalving(formData: FormData, targetUserId?: string) {
   revalidatePath('/herd');
 }
 
-export async function savePregnancyCheck(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function savePregnancyCheck(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalId = formData.get('animalId') as string;
   const dateStr = formData.get('checkDate') as string;
   const result = formData.get('result') as string; // PREGNANT, NEGATIVE
@@ -361,8 +346,8 @@ export async function savePregnancyCheck(formData: FormData, targetUserId?: stri
   revalidatePath('/herd');
 }
 
-export async function saveDryPeriod(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function saveDryPeriod(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalId = formData.get('animalId') as string;
   const dateStr = formData.get('dryDate') as string;
   const notes = formData.get('notes') as string;
@@ -387,8 +372,8 @@ export async function saveDryPeriod(formData: FormData, targetUserId?: string) {
   revalidatePath('/herd');
 }
 
-export async function importAnimalsFromData(data: any[], targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function importAnimalsFromData(data: any[], targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   let count = 0
 
   for (const item of data) {
@@ -416,9 +401,9 @@ export async function importAnimalsFromData(data: any[], targetUserId?: string) 
 
     await prisma.animal.upsert({
       where: { 
-        tagNumber_userId: {
+        tagNumber_farmId: {
           tagNumber,
-          userId: userIdToUse
+          farmId: farmIdToUse
         }
       },
       update: {
@@ -435,7 +420,7 @@ export async function importAnimalsFromData(data: any[], targetUserId?: string) 
         gender,
         birthDate,
         groupName: String(groupName),
-        userId: userIdToUse
+        farmId: farmIdToUse
       }
     })
     count++
@@ -446,8 +431,8 @@ export async function importAnimalsFromData(data: any[], targetUserId?: string) 
 }
 
 
-export async function addHealthAction(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addHealthAction(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalId = formData.get('animalId') as string;
   const dateStr = formData.get('date') as string;
   const type = formData.get('type') as string;
@@ -476,7 +461,7 @@ export async function addHealthAction(formData: FormData, targetUserId?: string)
     const animal = await prisma.animal.findUnique({ where: { id: animalId } });
     await prisma.financeRecord.create({
       data: {
-        userId: userIdToUse,
+        farmId: farmIdToUse,
         date: new Date(dateStr),
         type: 'EXPENSE',
         category: 'VET',
@@ -489,8 +474,8 @@ export async function addHealthAction(formData: FormData, targetUserId?: string)
   revalidatePath('/', 'layout');
 }
 
-export async function updateHealthAction(id: string, formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateHealthAction(id: string, formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const dateStr = formData.get('date') as string;
   const type = formData.get('type') as string;
   const disease = formData.get('disease') as string;
@@ -501,7 +486,7 @@ export async function updateHealthAction(id: string, formData: FormData, targetU
   const cost = parseFloat(formData.get('cost') as string || '0');
 
   await prisma.healthRecord.update({
-    where: { id, animal: { userId: userIdToUse } },
+    where: { id, animal: { farmId: farmIdToUse } },
     data: {
       date: new Date(dateStr),
       type,
@@ -517,16 +502,16 @@ export async function updateHealthAction(id: string, formData: FormData, targetU
   revalidatePath('/', 'layout');
 }
 
-export async function deleteHealthAction(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function deleteHealthAction(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   await prisma.healthRecord.delete({
-    where: { id, animal: { userId: userIdToUse } }
+    where: { id, animal: { farmId: farmIdToUse } }
   });
   revalidatePath('/', 'layout');
 }
 
-export async function addVaccineAction(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addVaccineAction(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalId = formData.get('animalId') as string;
   const vaccineName = formData.get('vaccineName') as string;
   const dateStr = formData.get('date') as string;
@@ -547,16 +532,16 @@ export async function addVaccineAction(formData: FormData, targetUserId?: string
   revalidatePath('/', 'layout');
 }
 
-export async function deleteVaccineAction(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function deleteVaccineAction(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   await prisma.vaccineRecord.delete({
-    where: { id, animal: { userId: userIdToUse } }
+    where: { id, animal: { farmId: farmIdToUse } }
   });
   revalidatePath('/', 'layout');
 }
 
-export async function addMassVaccineAction(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function addMassVaccineAction(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const animalIdsStr = formData.get('animalIds') as string;
   const vaccineName = formData.get('vaccineName') as string;
   const dateStr = formData.get('date') as string;
@@ -577,8 +562,8 @@ export async function addMassVaccineAction(formData: FormData, targetUserId?: st
   revalidatePath('/', 'layout');
 }
 
-export async function updateVaccineAction(id: string, formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function updateVaccineAction(id: string, formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const vaccineName = formData.get('vaccineName') as string;
   const dateStr = formData.get('date') as string;
   const nextDueDateStr = formData.get('nextDueDate') as string;
@@ -596,4 +581,50 @@ export async function updateVaccineAction(id: string, formData: FormData, target
     }
   });
   revalidatePath('/', 'layout');
+}
+
+export async function seedDemoData(targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId);
+  
+  // Check if already has animals to avoid duplicates
+  const existingCount = await prisma.animal.count({ where: { farmId: farmIdToUse } });
+  if (existingCount > 10) return { success: false, message: "Artıq kifayət qədər məlumat var." };
+
+  const breeds = ['Holstein', 'Simmental', 'Jersey', 'Ayrshire'];
+  const groups = ['SAĞMAL 1', 'SAĞMAL 2', 'QURUYA ÇIXANLAR', 'BUZOVLAR', 'DANALAR', 'DÜYƏLƏR'];
+
+  const animalsToCreate = [];
+
+  // Generate 75 animals
+  for (let i = 1; i <= 75; i++) {
+    const isCalf = i > 60;
+    const tagNumber = `AZ${10000 + i}`;
+    const breed = breeds[Math.floor(Math.random() * breeds.length)];
+    const birthDate = new Date();
+    birthDate.setFullYear(birthDate.getFullYear() - (isCalf ? 0 : Math.floor(Math.random() * 5) + 2));
+    if (isCalf) birthDate.setMonth(birthDate.getMonth() - Math.floor(Math.random() * 6));
+
+    let groupName = groups[Math.floor(Math.random() * 3)]; // Default to milking/dry
+    if (isCalf) groupName = 'BUZOVLAR';
+
+    animalsToCreate.push({
+      tagNumber,
+      name: `Heyvan ${i}`,
+      breed,
+      gender: 'FEMALE',
+      stage: isCalf ? 'CALF' : 'ACTIVE',
+      groupName,
+      birthDate,
+      farmId: farmIdToUse,
+      isPregnant: !isCalf && Math.random() > 0.6,
+      isDry: !isCalf && Math.random() > 0.8
+    });
+  }
+
+  await prisma.animal.createMany({
+    data: animalsToCreate
+  });
+
+  revalidatePath('/herd');
+  return { success: true, count: 75 };
 }

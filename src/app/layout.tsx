@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
+import MobileNav from "@/components/MobileNav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,11 +37,12 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-gray-50 text-gray-900 flex flex-col md:flex-row`} suppressHydrationWarning>
         <Sidebar />
-        <main className="flex-1 h-screen overflow-y-auto flex flex-col">
+        <main className="flex-1 h-screen overflow-y-auto flex flex-col pb-24 md:pb-0">
           <MobileHeader />
           <div className="flex-1">
             {children}
           </div>
+          <MobileNav />
         </main>
         <script
           dangerouslySetInnerHTML={{

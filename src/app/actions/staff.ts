@@ -4,28 +4,13 @@ import prisma from '@/lib/prisma'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 
-async function getSession() {
-  const session = await auth()
-  if (!session?.user?.id) {
-    throw new Error("Daxil olmayıbsınız")
-  }
-  return session
-}
+import { getFarmId } from '@/lib/auth-utils'
 
-// Universal User ID Resolver for Super Admin
-async function getTargetUserId(targetUserId?: string) {
-  const session = await getSession()
-  if (targetUserId && session.user.role === 'ADMIN') {
-    return targetUserId
-  }
-  return session.user.id
-}
-
-export async function getStaff(targetUserId?: string) {
+export async function getStaff(targetFarmId?: string) {
   try {
-    const userIdToUse = await getTargetUserId(targetUserId)
+    const farmIdToUse = await getFarmId(targetFarmId)
     return await prisma.staff.findMany({
-      where: { userId: userIdToUse },
+      where: { farmId: farmIdToUse },
       orderBy: { createdAt: 'desc' }
     })
   } catch (error) {
@@ -34,8 +19,8 @@ export async function getStaff(targetUserId?: string) {
   }
 }
 
-export async function createStaff(formData: FormData, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function createStaff(formData: FormData, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   const name = formData.get('name') as string
   const role = formData.get('role') as string
   const phone = formData.get('phone') as string
@@ -47,7 +32,7 @@ export async function createStaff(formData: FormData, targetUserId?: string) {
       role,
       phone: phone || null,
       salary,
-      userId: userIdToUse
+      farmId: farmIdToUse
     }
   })
 
@@ -55,12 +40,12 @@ export async function createStaff(formData: FormData, targetUserId?: string) {
   revalidatePath('/herd')
 }
 
-export async function deleteStaff(id: string, targetUserId?: string) {
-  const userIdToUse = await getTargetUserId(targetUserId)
+export async function deleteStaff(id: string, targetFarmId?: string) {
+  const farmIdToUse = await getFarmId(targetFarmId)
   await prisma.staff.delete({
     where: { 
       id,
-      userId: userIdToUse
+      farmId: farmIdToUse
     }
   })
   revalidatePath('/staff')

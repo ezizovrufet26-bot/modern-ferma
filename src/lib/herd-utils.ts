@@ -36,6 +36,8 @@ export const getAnimalGroup = (animal: any) => {
   const lastCalving = animal.calvingRecords && animal.calvingRecords[0];
   const lastAI = animal.reproRecords && animal.reproRecords.find((r: any) => r.eventType === 'INSEMINATION');
   
+  if (animal.isDry || animal.groupName === 'QURUYA ÇIXANLAR') return 'QURUYA ÇIXANLAR';
+
   if (ageInDays < 180) return 'BUZOVLAR'; 
   
   if (lastAI) {
@@ -59,6 +61,7 @@ export const getAnimalGroup = (animal: any) => {
   }
 
   if (ageInDays < 450) return 'DANALAR';
+  if (animal.groupName) return animal.groupName;
   return 'DÜYƏLƏR';
 };
 

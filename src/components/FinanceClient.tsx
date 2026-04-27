@@ -25,14 +25,14 @@ export default function FinanceClient({
   addAction, 
   deleteAction, 
   updateAction,
-  targetUserId,
+  targetFarmId,
   staffList = []
 }: { 
   initialRecords: any[], 
-  addAction: (formData: FormData, targetUserId?: string) => Promise<void>,
-  deleteAction: (id: string, targetUserId?: string) => Promise<void>,
-  updateAction: (id: string, formData: FormData, targetUserId?: string) => Promise<void>,
-  targetUserId?: string,
+  addAction: (formData: FormData, targetFarmId?: string) => Promise<void>,
+  deleteAction: (id: string, targetFarmId?: string) => Promise<void>,
+  updateAction: (id: string, formData: FormData, targetFarmId?: string) => Promise<void>,
+  targetFarmId?: string,
   staffList?: any[]
 }) {
   const [records, setRecords] = useState(initialRecords);
@@ -42,20 +42,20 @@ export default function FinanceClient({
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>(editingRecord?.category || 'OTHER');
 
-  // Update handlers to pass targetUserId
+  // Update handlers to pass targetFarmId
   const handleAdd = async (formData: FormData) => {
-    await addAction(formData, targetUserId);
+    await addAction(formData, targetFarmId);
     setShowModal(false);
   };
 
   const handleDelete = async (id: string) => {
     if(confirm('Silsin?')) {
-      await deleteAction(id, targetUserId);
+      await deleteAction(id, targetFarmId);
     }
   };
 
   const handleUpdate = async (id: string, formData: FormData) => {
-    await updateAction(id, formData, targetUserId);
+    await updateAction(id, formData, targetFarmId);
     setShowModal(false);
   };
 

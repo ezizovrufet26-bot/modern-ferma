@@ -31,25 +31,25 @@ export default function FeedingClient({
   updateFeedingRecordAction,
   deleteFeedingRecordAction,
   getFeedingRecordsAction,
-  targetUserId,
+  targetFarmId,
   initialHistory,
   groupCounts
 }: {
   initialFeeds: any[],
   initialRations: any[],
-  getFeedsAction: (targetUserId?: string) => Promise<any[]>,
-  getRationsAction: (targetUserId?: string) => Promise<any[]>,
-  addFeedAction: (data: any, targetUserId?: string) => Promise<any>,
-  updateFeedAction: (id: string, data: any, targetUserId?: string) => Promise<any>,
-  deleteFeedAction: (id: string, targetUserId?: string) => Promise<any>,
-  createRationAction: (name: string, description: string, items: any[], targetUserId?: string) => Promise<any>,
-  updateRationAction: (id: string, name: string, description: string, items: any[], targetUserId?: string) => Promise<any>,
-  deleteRationAction: (id: string, targetUserId?: string) => Promise<any>,
-  addFeedingRecordAction: (data: any, targetUserId?: string) => Promise<any>,
-  updateFeedingRecordAction: (id: string, data: any, targetUserId?: string) => Promise<any>,
-  deleteFeedingRecordAction: (id: string, targetUserId?: string) => Promise<any>,
-  getFeedingRecordsAction: (targetUserId?: string) => Promise<any[]>,
-  targetUserId?: string,
+  getFeedsAction: (targetFarmId?: string) => Promise<any[]>,
+  getRationsAction: (targetFarmId?: string) => Promise<any[]>,
+  addFeedAction: (data: any, targetFarmId?: string) => Promise<any>,
+  updateFeedAction: (id: string, data: any, targetFarmId?: string) => Promise<any>,
+  deleteFeedAction: (id: string, targetFarmId?: string) => Promise<any>,
+  createRationAction: (name: string, description: string, items: any[], targetFarmId?: string) => Promise<any>,
+  updateRationAction: (id: string, name: string, description: string, items: any[], targetFarmId?: string) => Promise<any>,
+  deleteRationAction: (id: string, targetFarmId?: string) => Promise<any>,
+  addFeedingRecordAction: (data: any, targetFarmId?: string) => Promise<any>,
+  updateFeedingRecordAction: (id: string, data: any, targetFarmId?: string) => Promise<any>,
+  deleteFeedingRecordAction: (id: string, targetFarmId?: string) => Promise<any>,
+  getFeedingRecordsAction: (targetFarmId?: string) => Promise<any[]>,
+  targetFarmId?: string,
   initialHistory?: any[],
   groupCounts?: Record<string, number>
 }) {
@@ -76,9 +76,9 @@ export default function FeedingClient({
   const refreshData = async () => {
     setLoading(true);
     const [f, r, h] = await Promise.all([
-      getFeedsAction(targetUserId), 
-      getRationsAction(targetUserId),
-      getFeedingRecordsAction(targetUserId)
+      getFeedsAction(targetFarmId), 
+      getRationsAction(targetFarmId),
+      getFeedingRecordsAction(targetFarmId)
     ]);
     setFeeds(f);
     setRations(r);
@@ -89,10 +89,10 @@ export default function FeedingClient({
   const handleAddFeed = async (e: any) => {
     e.preventDefault();
     if (editingItem) {
-      await updateFeedAction(editingItem.id, newFeed, targetUserId);
+      await updateFeedAction(editingItem.id, newFeed, targetFarmId);
       setEditingItem(null);
     } else {
-      await addFeedAction(newFeed, targetUserId);
+      await addFeedAction(newFeed, targetFarmId);
     }
     setNewFeed({ name: '', unit: 'kg', costPerUnit: 0, stock: 0 });
     refreshData();
@@ -102,10 +102,10 @@ export default function FeedingClient({
     e.preventDefault();
     if (newRation.items.length === 0) return alert('Rasiona yem əlavə edin!');
     if (editingItem) {
-      await updateRationAction(editingItem.id, newRation.name, newRation.description, newRation.items, targetUserId);
+      await updateRationAction(editingItem.id, newRation.name, newRation.description, newRation.items, targetFarmId);
       setEditingItem(null);
     } else {
-      await createRationAction(newRation.name, newRation.description, newRation.items, targetUserId);
+      await createRationAction(newRation.name, newRation.description, newRation.items, targetFarmId);
     }
     setNewRation({ name: '', description: '', items: [] });
     refreshData();
@@ -115,10 +115,10 @@ export default function FeedingClient({
     e.preventDefault();
     if (!feedingData.rationId) return alert('Rasion seçin!');
     if (editingItem) {
-      await updateFeedingRecordAction(editingItem.id, feedingData, targetUserId);
+      await updateFeedingRecordAction(editingItem.id, feedingData, targetFarmId);
       setEditingItem(null);
     } else {
-      await addFeedingRecordAction(feedingData, targetUserId);
+      await addFeedingRecordAction(feedingData, targetFarmId);
     }
     setFeedingData({ 
       groupName: 'SAĞMAL 1', 
@@ -371,7 +371,7 @@ export default function FeedingClient({
                   <div key={feed.id} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm relative group">
                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => startEditFeed(feed)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={async () => { if(confirm('Silmək istəyirsiniz?')) { await deleteFeedAction(feed.id, targetUserId); refreshData(); } }} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={async () => { if(confirm('Silmək istəyirsiniz?')) { await deleteFeedAction(feed.id, targetFarmId); refreshData(); } }} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-4"><Scale className="w-6 h-6 text-amber-500" /></div>
                     <h4 className="text-xl font-black text-gray-900">{feed.name}</h4>
@@ -393,7 +393,7 @@ export default function FeedingClient({
                   <div key={ration.id} className="bg-white rounded-[28px] p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 group relative">
                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => startEditRation(ration)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={async () => { if(confirm('Silmək istəyirsiniz?')) { await deleteRationAction(ration.id, targetUserId); refreshData(); } }} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={async () => { if(confirm('Silmək istəyirsiniz?')) { await deleteRationAction(ration.id, targetFarmId); refreshData(); } }} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="flex-1">
                       <h4 className="text-2xl font-black text-gray-900 mb-2">{ration.name}</h4>
@@ -429,7 +429,7 @@ export default function FeedingClient({
                      <div key={feeding.id} className="bg-white rounded-[32px] p-8 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center group relative hover:border-amber-300 transition-all gap-6 shadow-sm hover:shadow-xl">
                        <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                          <button onClick={() => { startEditFeeding(feeding); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"><Edit2 className="w-4 h-4" /></button>
-                         <button onClick={async () => { if(confirm('Silsin?')) { await deleteFeedingRecordAction(feeding.id, targetUserId); refreshData(); } }} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"><Trash2 className="w-4 h-4" /></button>
+                         <button onClick={async () => { if(confirm('Silsin?')) { await deleteFeedingRecordAction(feeding.id, targetFarmId); refreshData(); } }} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"><Trash2 className="w-4 h-4" /></button>
                        </div>
                        
                        <div className="flex items-center gap-6">

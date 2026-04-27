@@ -10,27 +10,27 @@ import { Suspense } from "react";
 function NewAnimalForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const targetUserId = searchParams.get('userId');
+  const targetFarmId = searchParams.get('farmId');
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <header className="mb-8 flex items-center gap-4">
-        <Link href={targetUserId ? `/admin/users/${targetUserId}/view` : "/herd"} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+        <Link href={targetFarmId ? `/admin/farms/${targetFarmId}/view` : "/herd"} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
           <ArrowLeft className="w-6 h-6 text-gray-600" />
         </Link>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Yeni Heyvan Əlavə Et</h1>
-          <p className="text-gray-500 mt-1">{targetUserId ? `Müştəri #${targetUserId} üçün qeydiyyat` : "Sistemə yeni heyvan qeydiyyatı"}</p>
+          <p className="text-gray-500 mt-1">{targetFarmId ? `Fərma #${targetFarmId} üçün qeydiyyat` : "Sistemə yeni heyvan qeydiyyatı"}</p>
         </div>
       </header>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
         <form action={async (formData) => {
-          await addAnimal(formData, targetUserId || undefined);
-          router.push(targetUserId ? `/admin/users/${targetUserId}/view` : "/herd");
+          await addAnimal(formData, targetFarmId || undefined);
+          router.push(targetFarmId ? `/admin/farms/${targetFarmId}/view` : "/herd");
         }} className="space-y-6">
           
-          <input type="hidden" name="targetUserId" value={targetUserId || ''} />
+          <input type="hidden" name="targetFarmId" value={targetFarmId || ''} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
