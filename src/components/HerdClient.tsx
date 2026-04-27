@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import { getAnimalGroup, calculateAge, type Animal } from '@/lib/herd-utils';
+import { useI18n } from '@/lib/i18n';
 import PedigreeTree from './PedigreeTree';
 import { addWeightRecord, deleteWeightRecord } from '@/app/actions/weight';
 import { importAnimalsFromData } from '@/app/actions/herd';
@@ -58,6 +59,7 @@ export default function HerdClient({
 }) {
   const searchParams = useSearchParams();
   const urlGroup = searchParams.get('group');
+  const { t } = useI18n();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGroup, setFilterGroup] = useState<string | null>(urlGroup);
@@ -218,7 +220,7 @@ export default function HerdClient({
       {/* MOBILE PERSISTENT TOP ACTIONS & GROUPS */}
       <div className="lg:hidden flex flex-col gap-4 mb-2 shrink-0">
         <div className="flex justify-between items-center px-1">
-          <h2 className="font-black text-gray-900 text-2xl tracking-tight">Sürü <span className="text-blue-600">İdarəetmə</span></h2>
+          <h2 className="font-black text-gray-900 text-2xl tracking-tight">{t.herd} <span className="text-blue-600">{t.settings === 'Ayarlar' ? 'İdarəetmə' : ''}</span></h2>
           <div className="flex items-center gap-2">
             <label className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl cursor-pointer hover:bg-emerald-100 transition-all border border-emerald-100">
               <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleExcelImport} disabled={isImporting} />
@@ -226,10 +228,10 @@ export default function HerdClient({
             </label>
             <button 
               onClick={async () => {
-                if(confirm('75 heyvanlıq demo məlumat yüklənsin?')) {
+                if(confirm(t.demoConfirm)) {
                   const res = await seedDemoDataAction?.(targetFarmId);
-                  if (res?.success) alert(`${res.count} heyvan uğurla yükləndi!`);
-                  else alert(res?.message || 'Xəta baş verdi');
+                  if (res?.success) alert(`${res.count} ${t.animalsLoaded}`);
+                  else alert(res?.message || t.errorOccurred);
                 }
               }}
               className="bg-amber-500 text-white p-3 rounded-2xl shadow-lg shadow-amber-600/20 active:scale-95 transition-all"
@@ -252,7 +254,7 @@ export default function HerdClient({
             onClick={() => setFilterGroup(null)}
             className={`whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${!filterGroup ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 ring-4 ring-blue-50' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'}`}
           >
-            Hamsı
+            {t.all}
           </button>
           {[...groups, 'PREGNANT', 'EMPTY', 'SICK'].map(group => (
             <button 
@@ -282,7 +284,7 @@ export default function HerdClient({
       <div className={`w-full lg:w-[420px] flex-col glass-panel rounded-[32px] shadow-2xl shadow-blue-500/5 overflow-hidden shrink-0 border border-white/50 ${selectedAnimalId ? 'hidden lg:flex' : 'flex'}`}>
         <div className="p-6 border-b border-gray-100/50 bg-white/30 backdrop-blur-md">
           <div className="hidden lg:flex justify-between items-center mb-6 lg:mb-6">
-            <h2 className="font-black text-gray-900 text-xl lg:text-2xl tracking-tight">Sürü <span className="text-blue-600">Siyahısı</span></h2>
+            <h2 className="font-black text-gray-900 text-xl lg:text-2xl tracking-tight">{t.herdList}</h2>
             <div className="lg:hidden w-10" /> {/* Spacer for back button on mobile */}
             <div className="flex items-center gap-2">
                <label className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl cursor-pointer hover:bg-emerald-100 transition-all border border-emerald-100">
@@ -292,7 +294,7 @@ export default function HerdClient({
                <button 
                  onClick={() => { setMassVaccineGroup('SAĞMAL 1'); setShowForm('mass_vaccine'); }}
                  className="bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-2xl transition-all shadow-lg shadow-purple-600/20 transform hover:scale-105 active:scale-95"
-                 title="Kütləvi Vaksinasiya"
+                 title={t.massVaccination}
                >
                  <Syringe className="w-5 h-5" />
                </button>
@@ -305,7 +307,7 @@ export default function HerdClient({
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
             <input 
               type="text" 
-              placeholder="Axtarış..." 
+              placeholder={t.search} 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm font-medium"

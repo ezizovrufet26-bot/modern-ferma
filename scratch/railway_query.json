@@ -1,0 +1,4 @@
+
+{
+  "query": "{ deployments(first: 1, input: { projectId: \"47f658e7-b2b1-45ec-a1de-8237b849ccb6\" }) { edges { node { id status createdAt url } } } }"
+}

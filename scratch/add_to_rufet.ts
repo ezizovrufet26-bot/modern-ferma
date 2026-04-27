@@ -7,9 +7,18 @@ async function addVaccineToRufet() {
     // 1. Rufet Admin istifadəçisini tapırıq (Bayaq tapdığımız ID)
     const userId = '643a39ee-d0b3-487c-8401-20f1626d11d1';
     
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user || !user.farmId) {
+      console.log("İstifadəçi və ya ferma tapılmadı.");
+      return;
+    }
+
     // 2. Rufetin heyvanlarını tapırıq
     const animals = await prisma.animal.findMany({
-      where: { userId },
+      where: { farmId: user.farmId },
       take: 5
     });
 
