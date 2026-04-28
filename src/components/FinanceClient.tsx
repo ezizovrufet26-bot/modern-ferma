@@ -101,16 +101,16 @@ export default function FinanceClient({
 
   const getCategoryLabel = (cat: string) => {
     switch (cat) {
-      case 'MILK_SALE': return 'Süd Satışı';
-      case 'FEED': return 'Yem Xərci';
-      case 'VET': return 'Baytar Xərci';
-      case 'SALARY_HEAD_VET': return 'Baş Həkim Maaşı';
-      case 'SALARY_VET': return 'Həkim Maaşı';
-      case 'SALARY_TECH': return 'Texnik Maaşı';
-      case 'SALARY_WORKER': return 'İşçi Maaşı';
-      case 'ANIMALS': return 'Heyvan Alışı';
-      case 'ANIMAL_SALE': return 'Heyvan Satışı';
-      default: return 'Digər';
+      case 'MILK_SALE': return t.milkSale;
+      case 'FEED': return t.feedExpense;
+      case 'VET': return t.vetExpense;
+      case 'SALARY_HEAD_VET': return t.headVetSalary;
+      case 'SALARY_VET': return t.vetSalary;
+      case 'SALARY_TECH': return t.techSalary;
+      case 'SALARY_WORKER': return t.workerSalary;
+      case 'ANIMALS': return t.animalPurchase;
+      case 'ANIMAL_SALE': return t.animalSale;
+      default: return t.other;
     }
   };
 
@@ -122,7 +122,7 @@ export default function FinanceClient({
             {t.financeManagement}
           </h1>
           <p className="text-gray-500 mt-2 font-medium flex items-center gap-2">
-            <Receipt className="w-4 h-4" /> Gəlir və xərclərin real-vaxt analitikası
+            <Receipt className="w-4 h-4" /> {t.financeSubtitle}
           </p>
         </div>
         <button 
@@ -142,7 +142,7 @@ export default function FinanceClient({
           <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.income}</p>
           <h3 className="text-4xl font-black text-gray-900 tracking-tighter">₼ {totalIncome.toLocaleString()}</h3>
           <div className="mt-6 flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 w-fit px-4 py-1.5 rounded-full border border-emerald-100">
-             <ArrowUpRight className="w-3 h-3" /> Gəlir artımı stabildir
+             <ArrowUpRight className="w-3 h-3" /> {t.incomeStable}
           </div>
         </div>
 
@@ -153,7 +153,7 @@ export default function FinanceClient({
           <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.expense}</p>
           <h3 className="text-4xl font-black text-gray-900 tracking-tighter">₼ {totalExpense.toLocaleString()}</h3>
           <div className="mt-6 flex items-center gap-2 text-red-600 font-bold text-xs bg-red-50 w-fit px-4 py-1.5 rounded-full border border-red-100">
-             <ArrowDownLeft className="w-3 h-3" /> Aylıq xərclər
+             <ArrowDownLeft className="w-3 h-3" /> {t.monthlyExpenses}
           </div>
         </div>
 
@@ -164,7 +164,7 @@ export default function FinanceClient({
           <p className="text-blue-200 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.balance}</p>
           <h3 className="text-4xl font-black tracking-tighter">₼ {balance.toLocaleString()}</h3>
           <div className="mt-6 flex items-center gap-2 text-blue-100 font-bold text-xs bg-white/10 backdrop-blur-md w-fit px-4 py-1.5 rounded-full border border-white/10">
-             Net Mənfəət
+             {t.netProfit}
           </div>
         </div>
       </section>
@@ -174,7 +174,7 @@ export default function FinanceClient({
         <div className="lg:col-span-2 glass-panel rounded-[48px] p-10 shadow-2xl shadow-blue-500/5 border border-white/50">
            <div className="flex justify-between items-center mb-10">
               <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                 <BarChart3 className="w-6 h-6 text-blue-600" /> Pul Axını
+                 <BarChart3 className="w-6 h-6 text-blue-600" /> {t.cashFlow}
               </h2>
            </div>
            <div className="h-[350px] w-full">
@@ -187,8 +187,8 @@ export default function FinanceClient({
                     cursor={{fill: '#f8fafc'}} 
                     contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '20px'}}
                   />
-                  <Bar dataKey="income" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Gəlir" />
-                  <Bar dataKey="expense" fill="#ef4444" radius={[8, 8, 0, 0]} name="Xərc" />
+                  <Bar dataKey="income" fill="#3b82f6" radius={[8, 8, 0, 0]} name={t.income} />
+                  <Bar dataKey="expense" fill="#ef4444" radius={[8, 8, 0, 0]} name={t.expense} />
                 </BarChart>
               </ResponsiveContainer>
            </div>
@@ -196,7 +196,7 @@ export default function FinanceClient({
 
         <div className="glass-panel rounded-[48px] p-10 shadow-2xl shadow-blue-500/5 border border-white/50">
            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-10 flex items-center gap-3">
-              <PieChart className="w-6 h-6 text-blue-600" /> Xərc Bölgüsü
+              <PieChart className="w-6 h-6 text-blue-600" /> {t.expenseDistribution}
            </h2>
            <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -226,8 +226,8 @@ export default function FinanceClient({
       <section className="glass-panel rounded-[48px] overflow-hidden shadow-2xl shadow-blue-500/5 border border-white/50">
          <div className="p-10 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/30 backdrop-blur-md">
             <div>
-               <h2 className="text-2xl font-black text-gray-900 tracking-tight">Əməliyyat Tarixçəsi</h2>
-               <p className="text-gray-500 text-sm font-medium mt-1">Bütün gəlir və xərc hərəkətləri</p>
+               <h2 className="text-2xl font-black text-gray-900 tracking-tight">{t.transactionHistory}</h2>
+               <p className="text-gray-500 text-sm font-medium mt-1">{t.allTransactions}</p>
             </div>
             <div className="flex gap-2 bg-gray-100/50 p-1.5 rounded-2xl">
                <button 
@@ -347,7 +347,7 @@ export default function FinanceClient({
                   </div>
                   <div>
                     <h4 className="font-black text-gray-900 text-2xl tracking-tight">{editingRecord ? t.edit : t.addRecord}</h4>
-                    <p className="text-gray-500 text-sm font-bold">Maliyyə hərəkətini qeyd edin.</p>
+                    <p className="text-gray-500 text-sm font-bold">{t.financeRecordDesc}</p>
                   </div>
                </div>
                <button type="button" onClick={() => setShowModal(false)} className="w-12 h-12 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
@@ -371,35 +371,35 @@ export default function FinanceClient({
                   onChange={(e) => setActiveCategory(e.target.value)}
                   className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black appearance-none"
                 >
-                  <option value="MILK_SALE">Süd Satışı</option>
-                  <option value="ANIMAL_SALE">Heyvan Satışı (+)</option>
-                  <option value="FEED">Yem Xərci</option>
-                  <option value="VET">Baytar Xərci</option>
-                  <option value="SALARY_HEAD_VET">Baş Həkim Maaşı (-)</option>
-                  <option value="SALARY_VET">Həkim Maaşı (-)</option>
-                  <option value="SALARY_TECH">Texnik Maaşı (-)</option>
-                  <option value="SALARY_WORKER">İşçi Maaşı (-)</option>
-                  <option value="ANIMALS">Heyvan Alışı (-)</option>
-                  <option value="OTHER">Digər</option>
+                  <option value="MILK_SALE">{t.milkSale}</option>
+                  <option value="ANIMAL_SALE">{t.animalSale} (+)</option>
+                  <option value="FEED">{t.feedExpense}</option>
+                  <option value="VET">{t.vetExpense}</option>
+                  <option value="SALARY_HEAD_VET">{t.headVetSalary} (-)</option>
+                  <option value="SALARY_VET">{t.vetSalary} (-)</option>
+                  <option value="SALARY_TECH">{t.techSalary} (-)</option>
+                  <option value="SALARY_WORKER">{t.workerSalary} (-)</option>
+                  <option value="ANIMALS">{t.animalPurchase} (-)</option>
+                  <option value="OTHER">{t.other}</option>
                 </select>
               </div>
 
               {activeCategory.startsWith('SALARY_') && staffList && staffList.length > 0 && (
                 <div className="space-y-3 col-span-full">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Müvafiq İşçini Seçin (Məlumatları doldurmaq üçün)</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.selectStaffForAuto}</label>
                   <select 
                     className="w-full text-sm px-6 py-5 bg-blue-50 border border-blue-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black appearance-none"
                     onChange={(e) => {
                       const staff = staffList.find(s => s.id === e.target.value);
                       if (staff) {
                         const descInput = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
-                        if (descInput) descInput.value = `${staff.name} - ${getCategoryLabel(activeCategory)} ödənişi`;
+                        if (descInput) descInput.value = `${staff.name} - ${getCategoryLabel(activeCategory)} ${t.paymentFor}`;
                         const amountInput = document.querySelector('input[name="amount"]') as HTMLInputElement;
                         if (amountInput && staff.salary) amountInput.value = staff.salary.toString();
                       }
                     }}
                   >
-                    <option value="">Siyahıdan seçin...</option>
+                    <option value="">{t.selectFromList}</option>
                     {staffList
                       .filter(s => {
                          if (activeCategory === 'SALARY_HEAD_VET') return s.role === 'BAS_HEKIM';
@@ -428,7 +428,7 @@ export default function FinanceClient({
               </div>
               <div className="col-span-full space-y-3">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.description}</label>
-                <textarea name="description" defaultValue={editingRecord?.description || ''} rows={2} className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold placeholder:font-medium" placeholder="Əlavə qeydlər..."></textarea>
+                <textarea name="description" defaultValue={editingRecord?.description || ''} rows={2} className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold placeholder:font-medium" placeholder={t.additionalNotes}></textarea>
               </div>
             </div>
 

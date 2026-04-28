@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { CalendarCheck, ChevronRight, Syringe, Baby, HeartPulse, Wheat, Activity } from 'lucide-react';
 import type { TaskItem } from '@/lib/task-engine';
 import Link from 'next/link';
+import { useI18n } from '@/lib/i18n';
 
 export default function TaskWidget({ tasks }: { tasks: TaskItem[] }) {
+  const { t } = useI18n();
   // Yalnız təcili və bu gün/sabah olan tapşırıqları göstərək
   const urgentTasks = tasks
     .filter(t => t.priority === 'HIGH' || t.dueDate <= new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000))
@@ -33,13 +35,13 @@ export default function TaskWidget({ tasks }: { tasks: TaskItem[] }) {
           <div>
             <h3 className="text-2xl font-black text-white flex items-center gap-3">
               <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-              Günün Tapşırıqları
+              {t.todaysTasks}
             </h3>
-            <p className="text-slate-400 text-sm mt-1 font-medium">Təcili diqqət tələb edən işlər</p>
+            <p className="text-slate-400 text-sm mt-1 font-medium">{t.urgentTasksDesc}</p>
           </div>
           {tasks.length > 0 && (
              <span className="bg-white/10 text-white px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest backdrop-blur-md">
-               Cəmi {tasks.length}
+               {t.total} {tasks.length}
              </span>
           )}
         </div>
@@ -49,8 +51,8 @@ export default function TaskWidget({ tasks }: { tasks: TaskItem[] }) {
             <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <CalendarCheck className="w-8 h-8 text-emerald-400" />
             </div>
-            <p className="text-white font-bold text-lg">Əla xəbər!</p>
-            <p className="text-slate-400 text-sm">Gözlənilən təcili tapşırıq yoxdur.</p>
+            <p className="text-white font-bold text-lg">{t.greatNews}</p>
+            <p className="text-slate-400 text-sm">{t.noUrgentTasks}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -67,7 +69,7 @@ export default function TaskWidget({ tasks }: { tasks: TaskItem[] }) {
                       </div>
                       {task.priority === 'HIGH' && (
                         <span className="text-[9px] font-black uppercase tracking-widest bg-red-500 text-white px-2 py-1 rounded-lg">
-                          Təcili
+                          {t.urgent}
                         </span>
                       )}
                     </div>

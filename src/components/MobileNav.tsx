@@ -23,6 +23,8 @@ export default function MobileNav() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  const { t } = useI18n();
+
   // Hide nav on login/register
   if (pathname === '/login' || pathname === '/register') return null;
 
@@ -35,8 +37,6 @@ export default function MobileNav() {
       setDeferredPrompt(null);
     }
   };
-
-  const { t } = useI18n();
 
   const navItems = [
     { name: t.dashboard, href: '/', icon: Home },
@@ -62,13 +62,13 @@ export default function MobileNav() {
                 <Download className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-bold text-sm">Tətbiqi Quraşdır</p>
-                <p className="text-[10px] text-gray-400">Daha sürətli və oflayn istifadə üçün</p>
+                <p className="font-bold text-sm">{t.installApp}</p>
+                <p className="text-[10px] text-gray-400">{t.installDesc}</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowInstall(false)} className="px-3 py-2 text-xs font-bold text-gray-400">Sonra</button>
-              <button onClick={handleInstall} className="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-black">Yüklə</button>
+              <button onClick={() => setShowInstall(false)} className="px-3 py-2 text-xs font-bold text-gray-400">{t.later}</button>
+              <button onClick={handleInstall} className="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-black">{t.install}</button>
             </div>
           </motion.div>
         )}

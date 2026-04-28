@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Syringe, Baby, HeartPulse, Wheat, Activity, ArrowRight, X, CalendarCheck } from 'lucide-react';
 import type { TaskItem } from '@/lib/task-engine';
 import Link from 'next/link';
+import { useI18n } from '@/lib/i18n';
 
 export default function NotificationCenter({ tasks }: { tasks: TaskItem[] }) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
   const unreadCount = tasks.length;
@@ -66,9 +68,9 @@ export default function NotificationCenter({ tasks }: { tasks: TaskItem[] }) {
                 <div>
                   <h3 className="text-xl font-black flex items-center gap-2">
                     <CalendarCheck className="w-5 h-5 text-amber-400" />
-                    Tapşırıqlar
+                    {t.tasks}
                   </h3>
-                  <p className="text-slate-400 text-xs font-bold mt-1">Avtomatik bildiriş mərkəzi</p>
+                  <p className="text-slate-400 text-xs font-bold mt-1">{t.autoNotificationCenter}</p>
                 </div>
                 <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                   <X className="w-5 h-5" />
@@ -81,8 +83,8 @@ export default function NotificationCenter({ tasks }: { tasks: TaskItem[] }) {
                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Check className="w-8 h-8 text-emerald-500" />
                     </div>
-                    <p className="font-bold text-gray-900">Hər şey qaydasındadır!</p>
-                    <p className="text-xs text-gray-500 mt-1">Yaxın günlərdə heç bir kritik tapşırıq yoxdur.</p>
+                    <p className="font-bold text-gray-900">{t.allGood}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t.noCriticalTasks}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -108,7 +110,7 @@ export default function NotificationCenter({ tasks }: { tasks: TaskItem[] }) {
               
               {tasks.length > 0 && (
                 <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cəmi {tasks.length} aktiv tapşırıq</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t.total} {tasks.length} {t.activeTasks}</p>
                 </div>
               )}
             </motion.div>

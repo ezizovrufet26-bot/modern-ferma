@@ -2,6 +2,7 @@
 
 import { UserPlus, Trash2, Phone, User, Loader2, Banknote } from "lucide-react";
 import { useState } from "react";
+import { useI18n } from '@/lib/i18n';
 
 interface Staff {
   id: string;
@@ -22,6 +23,7 @@ export default function StaffClient({
   deleteAction: (id: string, targetFarmId?: string) => Promise<void>,
   targetFarmId?: string
 }) {
+  const { t } = useI18n();
   const [isPending, setIsPending] = useState(false);
 
   return (
@@ -34,7 +36,7 @@ export default function StaffClient({
             <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
               <UserPlus className="w-5 h-5" />
             </div>
-            Yeni İşçi Əlavə Et
+            {t.add} {t.staff}
           </h2>
           <form 
             action={async (formData) => {
@@ -48,32 +50,32 @@ export default function StaffClient({
             className="space-y-5"
           >
             <div className="space-y-2">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Ad Soyad</label>
-              <input type="text" name="name" required placeholder="Məs: Əli Rzayev" className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-sm" />
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.name}</label>
+              <input type="text" name="name" required placeholder={t.exampleName} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-sm" />
             </div>
             <div className="space-y-2">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vəzifə</label>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.position}</label>
               <select name="role" required className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-sm appearance-none">
-                <option value="BAS_HEKIM">Baş Həkim</option>
-                <option value="HEKIM">Həkim</option>
-                <option value="TEXNIK">Süni Mayalanma Texniki</option>
-                <option value="ISCI">Fəhlə / İşçi</option>
+                <option value="BAS_HEKIM">{t.headVet}</option>
+                <option value="HEKIM">{t.vet}</option>
+                <option value="TEXNIK">{t.aiTech}</option>
+                <option value="ISCI">{t.worker}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Telefon</label>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.phone}</label>
               <input type="text" name="phone" placeholder="+994 50 000 00 00" className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-sm" />
             </div>
             <div className="space-y-2">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Maaş (₼)</label>
-              <input type="number" step="0.01" name="salary" placeholder="Məs: 800" className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-sm" />
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.salary}</label>
+              <input type="number" step="0.01" name="salary" placeholder={t.exampleSalary} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-sm" />
             </div>
             <button 
               type="submit" 
               disabled={isPending}
               className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-3xl transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Əlavə Et"}
+              {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : t.add}
             </button>
           </form>
         </div>
@@ -85,8 +87,8 @@ export default function StaffClient({
               <div className="w-20 h-20 bg-gray-50 rounded-[30px] flex items-center justify-center mb-6">
                 <User className="w-10 h-10 text-gray-300" />
               </div>
-              <h3 className="text-xl font-black text-gray-900">Heyət yoxdur</h3>
-              <p className="text-gray-500 mt-2 font-medium">Bu ferma üçün hələ heç bir işçi əlavə edilməyib.</p>
+              <h3 className="text-xl font-black text-gray-900">{t.noData}</h3>
+              <p className="text-gray-500 mt-2 font-medium">{t.noStaffAdded}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -100,15 +102,15 @@ export default function StaffClient({
                       <div>
                         <h3 className="font-black text-gray-900 leading-tight text-lg">{staff.name}</h3>
                         <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full mt-2 inline-block uppercase tracking-wider">
-                          {staff.role === 'BAS_HEKIM' ? 'Baş Həkim' : 
-                           staff.role === 'HEKIM' ? 'Həkim' : 
-                           staff.role === 'TEXNIK' ? 'Mayalanma Texniki' : 'İşçi'}
+                          {staff.role === 'BAS_HEKIM' ? t.headVet : 
+                           staff.role === 'HEKIM' ? t.vet : 
+                           staff.role === 'TEXNIK' ? t.aiTech : t.worker}
                         </span>
                       </div>
                     </div>
                     <button 
                       onClick={async () => {
-                        if (confirm("Bu işçini silmək istədiyinizə əminsiniz?")) {
+                        if (confirm(t.deleteConfirm)) {
                            await deleteAction(staff.id, targetFarmId);
                         }
                       }}
@@ -130,7 +132,7 @@ export default function StaffClient({
                       <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
                         <Banknote className="w-4 h-4" />
                       </div>
-                      Maaş: ₼ {staff.salary.toLocaleString()}
+                      {t.salaryText} ₼ {staff.salary.toLocaleString()}
                     </div>
                   )}
                 </div>

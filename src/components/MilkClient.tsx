@@ -100,7 +100,7 @@ export default function MilkClient({
           <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.todayMilk}</p>
           <h3 className="text-4xl font-black text-gray-900 tracking-tighter">{totalToday.toLocaleString()} <span className="text-lg text-gray-400 ml-1">{t.liters}</span></h3>
           <div className="mt-6 flex items-center gap-2 text-blue-600 font-bold text-xs bg-blue-50 w-fit px-4 py-1.5 rounded-full border border-blue-100">
-             <TrendingUp className="w-3 h-3" /> Stabil artım
+             <TrendingUp className="w-3 h-3" /> {t.stableGrowth}
           </div>
         </div>
 
@@ -108,12 +108,12 @@ export default function MilkClient({
           <div className="absolute -right-4 -bottom-4 w-32 h-32 text-emerald-50 opacity-50 group-hover:scale-110 transition-transform">
              <LineIcon className="w-full h-full" />
           </div>
-          <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">Ortalama (Son 7 gün)</p>
+          <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.avgLast7Days}</p>
           <h3 className="text-4xl font-black text-gray-900 tracking-tighter">
             {(last7Days.reduce((acc, d) => acc + d.amount, 0) / 7).toFixed(1)} <span className="text-lg text-gray-400 ml-1">{t.liters}</span>
           </h3>
           <div className="mt-6 flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 w-fit px-4 py-1.5 rounded-full border border-emerald-100">
-             <ArrowUpRight className="w-3 h-3" /> Hədəfə uyğundur
+             <ArrowUpRight className="w-3 h-3" /> {t.onTarget}
           </div>
         </div>
 
@@ -121,12 +121,12 @@ export default function MilkClient({
           <div className="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 group-hover:scale-110 transition-transform">
              <Award className="w-full h-full" />
           </div>
-          <p className="text-blue-100 font-black text-[10px] uppercase tracking-[0.2em] mb-2">Ən Yaxşı İstehsalçı</p>
+          <p className="text-blue-100 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{t.topProducer}</p>
           <h3 className="text-4xl font-black tracking-tighter">
             {topProducers[0]?.tag || '-'}
           </h3>
           <div className="mt-6 flex items-center gap-2 text-blue-100 font-bold text-xs bg-white/10 backdrop-blur-md w-fit px-4 py-1.5 rounded-full border border-white/10">
-             Günlük orta: {(topProducers[0]?.total / topProducers[0]?.count || 0).toFixed(1)} L
+             {t.dailyAvg}: {(topProducers[0]?.total / topProducers[0]?.count || 0).toFixed(1)} L
           </div>
         </div>
       </section>
@@ -136,7 +136,7 @@ export default function MilkClient({
         <div className="lg:col-span-2 glass-panel rounded-[48px] p-10 shadow-2xl shadow-blue-500/5 border border-white/50">
            <div className="flex justify-between items-center mb-10">
               <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                 <BarChart3 className="w-6 h-6 text-blue-600" /> Həftəlik Trend
+                 <BarChart3 className="w-6 h-6 text-blue-600" /> {t.weeklyTrend}
               </h2>
            </div>
            <div className="h-[350px] w-full">
@@ -154,7 +154,7 @@ export default function MilkClient({
                   <Tooltip 
                     contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '20px'}}
                   />
-                  <Area type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorYield)" name="Ümumi Litr" />
+                  <Area type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorYield)" name={t.totalLiters} />
                 </AreaChart>
               </ResponsiveContainer>
            </div>
@@ -162,7 +162,7 @@ export default function MilkClient({
 
         <div className="glass-panel rounded-[48px] p-10 shadow-2xl shadow-blue-500/5 border border-white/50">
            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-10 flex items-center gap-3">
-              <Award className="w-6 h-6 text-blue-600" /> Ən Çox Süd Verənlər
+              <Award className="w-6 h-6 text-blue-600" /> {t.topProducersList}
            </h2>
            <div className="space-y-6">
               {topProducers.map((p: any, i) => (
@@ -191,7 +191,7 @@ export default function MilkClient({
          <div className="p-10 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{t.milkRecords}</h2>
-               <p className="text-gray-500 text-sm font-medium mt-1">Gündəlik qeydlər siyahısı</p>
+               <p className="text-gray-500 text-sm font-medium mt-1">{t.dailyRecordsList}</p>
             </div>
             <div className="relative w-full md:w-80 group">
               <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -318,7 +318,7 @@ export default function MilkClient({
                   </div>
                   <div>
                     <h4 className="font-black text-gray-900 text-xl md:text-2xl tracking-tight">{editingRecord ? t.edit : t.addMilk}</h4>
-                    <p className="text-gray-500 text-xs md:text-sm font-bold">Məlumatları daxil edin.</p>
+                    <p className="text-gray-500 text-xs md:text-sm font-bold">{t.enterInfo}</p>
                   </div>
                </div>
                <button type="button" onClick={() => setShowModal(false)} className="w-10 h-10 md:w-12 md:h-12 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
@@ -330,12 +330,12 @@ export default function MilkClient({
               {!editingRecord && (
                 <div className="col-span-full space-y-4">
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Bırka ilə axtar</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.searchByTag}</label>
                     <div className="relative group">
                        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                        <input 
                          type="text" 
-                         placeholder="Məs: 1234" 
+                         placeholder={t.exampleTag}
                          value={modalSearchTerm}
                          onChange={(e) => setModalSearchTerm(e.target.value)}
                          className="w-full pl-12 pr-6 py-4 bg-blue-50/50 border border-blue-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-sm"
@@ -345,7 +345,7 @@ export default function MilkClient({
                   <div className="space-y-2">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.tagNumber}</label>
                     <select name="animalId" required className="w-full text-sm px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black appearance-none">
-                      <option value="">{modalSearchTerm ? 'Axtarışa uyğun nəticələr...' : 'Siyahıdan seçin...'}</option>
+                      <option value="">{modalSearchTerm ? t.searchResults : t.selectFromList}</option>
                       {(animals || [])
                         .filter(a => a.gender === 'FEMALE' && (a.tagNumber.toLowerCase().includes(modalSearchTerm.toLowerCase())))
                         .map(a => (

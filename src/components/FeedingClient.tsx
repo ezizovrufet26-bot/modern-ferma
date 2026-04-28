@@ -102,7 +102,7 @@ export default function FeedingClient({
 
   const handleAddRation = async (e: any) => {
     e.preventDefault();
-    if (newRation.items.length === 0) return alert('Rasiona yem əlavə edin!');
+    if (newRation.items.length === 0) return alert(t.alertAddFeed);
     if (editingItem) {
       await updateRationAction(editingItem.id, newRation.name, newRation.description, newRation.items, targetFarmId);
       setEditingItem(null);
@@ -115,7 +115,7 @@ export default function FeedingClient({
 
   const handleFeeding = async (e: any) => {
     e.preventDefault();
-    if (!feedingData.rationId) return alert('Rasion seçin!');
+    if (!feedingData.rationId) return alert(t.alertSelectRation);
     if (editingItem) {
       await updateFeedingRecordAction(editingItem.id, feedingData, targetFarmId);
       setEditingItem(null);
@@ -173,7 +173,7 @@ export default function FeedingClient({
           <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
             <Wheat className="w-10 h-10 text-amber-500" /> {t.feedManagement}
           </h1>
-          <p className="text-gray-500 mt-2 font-medium">Stoklar, rasionlar və gündəlik yemləmə qeydləri.</p>
+          <p className="text-gray-500 mt-2 font-medium">{t.feedDesc}</p>
         </div>
 
         <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-gray-100">
@@ -187,7 +187,7 @@ export default function FeedingClient({
             onClick={() => { setActiveTab('rations'); setEditingItem(null); }}
             className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === 'rations' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            Rasionlar
+            {t.rations}
           </button>
           <button 
             onClick={() => { setActiveTab('feeding'); setEditingItem(null); }}
@@ -211,16 +211,16 @@ export default function FeedingClient({
               </div>
               <form onSubmit={handleAddFeed} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Yem Adı</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.feedName}</label>
                   <input type="text" value={newFeed.name} onChange={e => setNewFeed({...newFeed, name: e.target.value})} placeholder="Məs: Arpa" className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-amber-500/20 outline-none" required />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Qiymət (₼)</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.price}</label>
                     <input type="number" step="0.01" value={newFeed.costPerUnit} onChange={e => setNewFeed({...newFeed, costPerUnit: parseFloat(e.target.value)})} className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-amber-500/20 outline-none" required />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vahid</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.unit}</label>
                     <select value={newFeed.unit} onChange={e => setNewFeed({...newFeed, unit: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-amber-500/20 outline-none">
                       <option value="kg">kg</option>
                       <option value="ton">ton</option>
@@ -229,7 +229,7 @@ export default function FeedingClient({
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Stok</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.stock}</label>
                   <input type="number" value={newFeed.stock} onChange={e => setNewFeed({...newFeed, stock: parseFloat(e.target.value)})} className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-amber-500/20 outline-none" required />
                 </div>
                 <button type="submit" className={`w-full ${editingItem ? 'bg-blue-600' : 'bg-amber-500'} text-white py-4 rounded-2xl font-black text-sm shadow-lg transition-all`}>
@@ -244,17 +244,17 @@ export default function FeedingClient({
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black flex items-center gap-2">
                   <Calculator className="w-5 h-5 text-amber-500" />
-                  {editingItem ? 'Rasionu Redaktə Et' : 'Yeni Rasion Yarat'}
+                  {editingItem ? t.editRation : t.newRation}
                 </h3>
                 {editingItem && <button onClick={() => { setEditingItem(null); setNewRation({ name: '', description: '', items: [] }); }}><X className="w-5 h-5 text-gray-400" /></button>}
               </div>
               <form onSubmit={handleAddRation} className="space-y-6">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Rasion Adı</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.rationName}</label>
                   <input type="text" value={newRation.name} onChange={e => setNewRation({...newRation, name: e.target.value})} placeholder="Məs: Sağmal 1 Qarışığı" className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-amber-500/20 outline-none" required />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Yemlər</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.feeds}</label>
                   {newRation.items.map((item, idx) => (
                     <div key={idx} className="flex gap-2 items-center">
                       <select value={item.feedItemId} onChange={e => {
@@ -262,7 +262,7 @@ export default function FeedingClient({
                           newItems[idx].feedItemId = e.target.value;
                           setNewRation({...newRation, items: newItems});
                         }} className="flex-1 bg-gray-50 border-none rounded-xl p-3 text-xs font-bold">
-                        <option value="">Seçin</option>
+                        <option value="">{t.select}</option>
                         {feeds.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                       </select>
                       <input type="number" value={item.amount} onChange={e => {
@@ -273,10 +273,10 @@ export default function FeedingClient({
                       <button type="button" onClick={() => setNewRation({...newRation, items: newRation.items.filter((_, i) => i !== idx)})} className="p-3 text-red-500"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setNewRation({...newRation, items: [...newRation.items, { feedItemId: '', amount: 0 }]})} className="w-full border-2 border-dashed border-gray-200 text-gray-400 py-3 rounded-2xl font-bold text-xs hover:border-amber-300 hover:text-amber-500">+ Yem Əlavə Et</button>
+                  <button type="button" onClick={() => setNewRation({...newRation, items: [...newRation.items, { feedItemId: '', amount: 0 }]})} className="w-full border-2 border-dashed border-gray-200 text-gray-400 py-3 rounded-2xl font-bold text-xs hover:border-amber-300 hover:text-amber-500">{t.addFeedBtn}</button>
                 </div>
                 <button type="submit" className={`w-full ${editingItem ? 'bg-blue-600' : 'bg-amber-500'} text-white py-4 rounded-2xl font-black text-sm shadow-lg transition-all`}>
-                  {editingItem ? 'Rasionu Yenilə' : 'Rasionu Saxla'}
+                  {editingItem ? t.updateRation : t.saveRation}
                 </button>
               </form>
             </div>
@@ -316,28 +316,28 @@ export default function FeedingClient({
                    </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Heyvan Sayı</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.animalCount}</label>
                   <input type="number" value={feedingData.animalCount} onChange={e => setFeedingData({...feedingData, animalCount: parseInt(e.target.value)})} className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold" required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Rasion</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.ration}</label>
                   <select value={feedingData.rationId} onChange={e => setFeedingData({...feedingData, rationId: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold" required>
-                    <option value="">Rasion seçin</option>
+                    <option value="">{t.selectRation}</option>
                     {rations.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                   </select>
                 </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Gündəlik Tezlik</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.dailyFrequency}</label>
                       <select value={feedingData.frequency} onChange={e => setFeedingData({...feedingData, frequency: parseInt(e.target.value)})} className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold">
-                        <option value="1">1 Dəfə</option>
-                        <option value="2">2 Dəfə</option>
-                        <option value="3">3 Dəfə</option>
-                        <option value="4">4 Dəfə</option>
+                        <option value="1">{t.times1}</option>
+                        <option value="2">{t.times2}</option>
+                        <option value="3">{t.times3}</option>
+                        <option value="4">{t.times4}</option>
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Edilən Saatlar</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{t.hoursDone}</label>
                       <div className="flex flex-wrap gap-2 pt-2">
                         { (feedingData.frequency === 3 ? [6, 14, 22] : feedingData.frequency === 2 ? [7, 17] : feedingData.frequency === 4 ? [6, 12, 18, 0] : [12]).map((hour, idx) => (
                            <button 
@@ -367,7 +367,7 @@ export default function FeedingClient({
         <div className="lg:col-span-2 space-y-8">
           {activeTab === 'inventory' && (
             <div className="glass-panel rounded-[40px] p-10 shadow-2xl shadow-amber-500/5">
-              <h3 className="text-2xl font-black mb-8">Ambar Vəziyyəti</h3>
+              <h3 className="text-2xl font-black mb-8">{t.inventoryStatus}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {feeds.map(feed => (
                   <div key={feed.id} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm relative group">
@@ -378,8 +378,8 @@ export default function FeedingClient({
                     <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-4"><Scale className="w-6 h-6 text-amber-500" /></div>
                     <h4 className="text-xl font-black text-gray-900">{feed.name}</h4>
                     <div className="mt-4 flex justify-between items-end">
-                      <div><p className="text-gray-400 text-xs font-bold uppercase mb-1">Stok</p><p className="text-2xl font-black text-gray-900">{feed.stock} {feed.unit}</p></div>
-                      <div className="text-right"><p className="text-gray-400 text-xs font-bold uppercase mb-1">Qiymət</p><p className="text-lg font-black text-amber-600">₼ {feed.costPerUnit}</p></div>
+                      <div><p className="text-gray-400 text-xs font-bold uppercase mb-1">{t.stock}</p><p className="text-2xl font-black text-gray-900">{feed.stock} {feed.unit}</p></div>
+                      <div className="text-right"><p className="text-gray-400 text-xs font-bold uppercase mb-1">{t.price}</p><p className="text-lg font-black text-amber-600">₼ {feed.costPerUnit}</p></div>
                     </div>
                   </div>
                 ))}
@@ -389,7 +389,7 @@ export default function FeedingClient({
 
           {activeTab === 'rations' && (
             <div className="glass-panel rounded-[40px] p-10 shadow-2xl shadow-amber-500/5">
-              <h3 className="text-2xl font-black mb-8">Rasion Siyahısı</h3>
+              <h3 className="text-2xl font-black mb-8">{t.rationList}</h3>
               <div className="space-y-4">
                 {rations.map(ration => (
                   <div key={ration.id} className="bg-white rounded-[28px] p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 group relative">
@@ -406,7 +406,7 @@ export default function FeedingClient({
                       </div>
                     </div>
                     <div className="bg-amber-50 p-6 rounded-3xl text-center min-w-[140px] border border-amber-100">
-                      <p className="text-amber-600 font-black text-[10px] uppercase mb-1">Cəmi Qiymət</p>
+                      <p className="text-amber-600 font-black text-[10px] uppercase mb-1">{t.totalPrice}</p>
                       <p className="text-2xl font-black text-amber-700">₼ {ration.items.reduce((acc: any, i: any) => acc + (i.amount * i.feedItem.costPerUnit), 0).toFixed(2)}</p>
                     </div>
                   </div>
@@ -417,7 +417,7 @@ export default function FeedingClient({
 
           {activeTab === 'feeding' && (
             <div className="glass-panel rounded-[40px] p-10 shadow-2xl shadow-amber-500/5">
-              <h3 className="text-2xl font-black mb-8">Yemləmə Tarixçəsi</h3>
+              <h3 className="text-2xl font-black mb-8">{t.feedingHistory}</h3>
               <div className="space-y-4">
                  {history.map((feeding: any) => {
                    const frequency = feeding.frequency || (['SAĞMAL 1', 'SAĞMAL 2', 'YENİ DOĞANLAR', 'BUZOVLAR'].includes(feeding.groupName) ? 3 : 2);
@@ -442,7 +442,7 @@ export default function FeedingClient({
                          <div>
                            <div className="flex items-center gap-2 mb-1">
                              <p className="font-black text-gray-900 text-lg uppercase tracking-tight">{feeding.groupName}</p>
-                             <span className="bg-gray-100 text-gray-500 text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest">{countSetBits(completed)}/{frequency} YEMLƏMƏ</span>
+                             <span className="bg-gray-100 text-gray-500 text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest">{countSetBits(completed)}/{frequency} {t.feedingCount}</span>
                            </div>
                            <div className="flex items-center gap-3">
                               {times.map((hour, idx) => {
@@ -466,9 +466,9 @@ export default function FeedingClient({
 
                        <div className="flex flex-wrap gap-4 md:gap-10">
                          <div className="text-center md:text-left">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t.status}</p>
                             <p className={`text-sm font-black ${completed === frequency ? 'text-emerald-600' : 'text-amber-600'}`}>
-                               {completed === frequency ? 'TAMAMLANIB' : `${completed} / ${frequency} EDİLİB`}
+                               {completed === frequency ? t.completed : `${completed} / ${frequency} ${t.done}`}
                             </p>
                          </div>
                          <div className="text-center md:text-left">
@@ -478,7 +478,7 @@ export default function FeedingClient({
                        </div>
 
                        <div className="bg-gray-50 p-6 rounded-3xl text-right min-w-[140px] border border-gray-100 group-hover:bg-amber-50 group-hover:border-amber-100 transition-all">
-                         <p className="text-gray-400 font-black text-[10px] uppercase mb-1">Maliyyə Xərci</p>
+                         <p className="text-gray-400 font-black text-[10px] uppercase mb-1">{t.financialCost}</p>
                          <p className="text-2xl font-black text-gray-900">₼ {feeding.totalCost.toLocaleString()}</p>
                        </div>
                      </div>

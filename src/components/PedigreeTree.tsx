@@ -3,6 +3,7 @@
 import React from 'react';
 import { ChevronRight, ChevronDown, User, Users, Baby, ArrowRight } from 'lucide-react';
 import { Animal } from '@/lib/herd-utils';
+import { useI18n } from '@/lib/i18n';
 
 interface PedigreeTreeProps {
   selectedAnimal: Animal;
@@ -11,6 +12,7 @@ interface PedigreeTreeProps {
 }
 
 export default function PedigreeTree({ selectedAnimal, allAnimals, onSelectAnimal }: PedigreeTreeProps) {
+  const { t } = useI18n();
   
   // Find ancestors
   const mother = allAnimals.find(a => a.id === selectedAnimal.motherId) || null;
@@ -27,7 +29,7 @@ export default function PedigreeTree({ selectedAnimal, allAnimals, onSelectAnima
         </div>
         <div className="text-center">
            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
-           <p className="text-xs font-bold text-gray-400">Naməlum</p>
+           <p className="text-xs font-bold text-gray-400">{t.unknown}</p>
         </div>
       </div>
     );
@@ -77,29 +79,29 @@ export default function PedigreeTree({ selectedAnimal, allAnimals, onSelectAnima
 
         {/* ANCESTORS */}
         <div className="flex flex-col items-center gap-12 relative z-10">
-           <AnimalNode animal={grandmother} label="Nənə" />
+           <AnimalNode animal={grandmother} label={t.grandmother} />
            <div className="w-px h-10 bg-gradient-to-b from-gray-200 to-transparent" />
-           <AnimalNode animal={mother} label="Ana" />
+           <AnimalNode animal={mother} label={t.mother} />
            <div className="w-px h-10 bg-gradient-to-b from-gray-200 to-transparent" />
         </div>
 
         {/* TARGET ANIMAL */}
         <div className="relative z-10">
-           <AnimalNode animal={selectedAnimal} label="Hazırkı Heyvan" isTarget={true} />
+           <AnimalNode animal={selectedAnimal} label={t.currentAnimal} isTarget={true} />
         </div>
 
         {/* DESCENDANTS */}
         <div className="flex flex-col items-center gap-10 w-full relative z-10">
            <div className="w-px h-10 bg-gradient-to-b from-blue-200 to-transparent" />
-           <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] bg-blue-50 px-6 py-2 rounded-full border border-blue-100">Balaları</h4>
+           <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] bg-blue-50 px-6 py-2 rounded-full border border-blue-100">{t.children}</h4>
            
            <div className="flex flex-wrap justify-center gap-12 mt-4">
               {children.length > 0 ? (
                 children.map(child => (
-                  <AnimalNode key={child.id} animal={child} label={child.gender === 'MALE' ? 'Oğul' : 'Qız'} />
+                  <AnimalNode key={child.id} animal={child} label={child.gender === 'MALE' ? t.son : t.daughter} />
                 ))
               ) : (
-                <p className="text-gray-400 font-bold text-xs italic">Hələ ki balası yoxdur</p>
+                <p className="text-gray-400 font-bold text-xs italic">{t.noChildrenYet}</p>
               )}
            </div>
         </div>
@@ -107,7 +109,7 @@ export default function PedigreeTree({ selectedAnimal, allAnimals, onSelectAnima
         {/* SIRE INFO (Side Badge) */}
         {selectedAnimal.sireCode && (
            <div className="absolute top-0 right-0 bg-gradient-to-br from-indigo-600 to-indigo-800 p-6 rounded-[32px] text-white shadow-xl shadow-indigo-600/20 transform rotate-3 hover:rotate-0 transition-transform">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Ata (Toxum Kodu)</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">{t.sireCodeText}</p>
               <p className="text-xl font-black">{selectedAnimal.sireCode}</p>
            </div>
         )}
